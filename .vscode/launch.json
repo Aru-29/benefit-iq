@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "FastAPI: Run benefit_iq (Backend)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/benefit-iq-be/.venv/Scripts/python.exe",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/benefit-iq-be",
+            "args": [
+                "benefit_iq.main:app",
+                "--reload",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "8080"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/benefit-iq-be/src"
+            }
+        },
+        {
+            "name": "Python: Pytest (Backend)",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}/benefit-iq-be/.venv/Scripts/python.exe",
+            "module": "pytest",
+            "cwd": "${workspaceFolder}/benefit-iq-be",
+            "args": [
+                "tests"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/benefit-iq-be/src"
+            }
+        }
+    ]
+}
