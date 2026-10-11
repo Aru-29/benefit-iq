@@ -1,6 +1,8 @@
 """
 Module missing docstring.
 """
+
+
 class ApplicationException(Exception):
     """Base application exception."""
 

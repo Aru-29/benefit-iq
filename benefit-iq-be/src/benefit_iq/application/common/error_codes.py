@@ -1,9 +1,12 @@
 """
 Module missing docstring.
 """
+
+
 class ErrorCodes:
     # Generic
     """Class missing docstring."""
+
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR"
     VALIDATION_ERROR = "VALIDATION_ERROR"
     UNAUTHORIZED = "UNAUTHORIZED"

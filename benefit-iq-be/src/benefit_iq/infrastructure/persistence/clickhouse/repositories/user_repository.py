@@ -1,9 +1,11 @@
 """User repository implementation for ClickHouse."""
+
 import asyncio
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
 from uuid import UUID
 
+from benefit_iq.api.schemas.query import QueryRequest, QueryResponse
 from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.entities.user import User
 from benefit_iq.domain.enums.auth_provider import AuthProvider
@@ -42,24 +44,26 @@ class ClickHouseUserRepository(UserRepository):
 
     async def create(self, user: User) -> User:
         """Async function missing docstring."""
-        data = [[
-            str(user.id),
-            user.username,
-            user.first_name,
-            user.middle_name or "",
-            user.last_name,
-            user.email,
-            user.password_hash or "",
-            str(user.role_id),
-            user.authentication_provider.value,
-            user.external_provider_id or "",
-            1 if user.is_active else 0,
-            1 if user.is_email_verified else 0,
-            json.dumps(user.preferred_settings) if user.preferred_settings else "",
-            user.created_at,
-            user.updated_at,
-            user.last_login_at or __import__('datetime').datetime(2000, 1, 1)
-        ]]
+        data = [
+            [
+                str(user.id),
+                user.username,
+                user.first_name,
+                user.middle_name or "",
+                user.last_name,
+                user.email,
+                user.password_hash or "",
+                str(user.role_id),
+                user.authentication_provider.value,
+                user.external_provider_id or "",
+                1 if user.is_active else 0,
+                1 if user.is_email_verified else 0,
+                json.dumps(user.preferred_settings) if user.preferred_settings else "",
+                user.created_at,
+                user.updated_at,
+                user.last_login_at or __import__("datetime").datetime(2000, 1, 1),
+            ]
+        ]
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             None,
@@ -83,8 +87,8 @@ class ClickHouseUserRepository(UserRepository):
                     "created_at",
                     "updated_at",
                     "last_login_at",
-                ]
-            )
+                ],
+            ),
         )
         return user
 
@@ -120,8 +124,7 @@ class ClickHouseUserRepository(UserRepository):
             "AND external_provider_id = %(external_id)s"
         )
         result = await self.db.query_async(
-            query,
-            {"provider": provider, "external_id": external_id}
+            query, {"provider": provider, "external_id": external_id}
         )
         if not result.result_rows:
             return None
@@ -147,14 +150,16 @@ class ClickHouseUserRepository(UserRepository):
         if not user:
             return False
         user.is_active = False
-        user.updated_at = datetime.now(timezone.utc)
+        user.updated_at = datetime.now(UTC)
         await self.update(user)
         return True
 
     async def query_generic(self, request: QueryRequest) -> QueryResponse:
         """Executes datatype-aware generic query with filters, sorting, and pagination."""
         from benefit_iq.api.schemas.query import QueryResponse
-        from benefit_iq.infrastructure.persistence.clickhouse.query_builder import ClickHouseQueryBuilder
+        from benefit_iq.infrastructure.persistence.clickhouse.query_builder import (
+            ClickHouseQueryBuilder,
+        )
 
         builder = ClickHouseQueryBuilder(
             table_name="benefitiq.users FINAL",
@@ -183,21 +188,25 @@ class ClickHouseUserRepository(UserRepository):
         if data_res and data_res.result_rows:
             for row in data_res.result_rows:
                 u = self._map_row_to_user(row)
-                items.append({
-                    "id": str(u.id),
-                    "username": u.username,
-                    "first_name": u.first_name,
-                    "middle_name": u.middle_name,
-                    "last_name": u.last_name,
-                    "email": u.email,
-                    "role_id": str(u.role_id),
-                    "is_active": u.is_active,
-                    "is_email_verified": u.is_email_verified,
-                    "created_at": u.created_at.isoformat() if u.created_at else None,
-                    "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
-                })
+                items.append(
+                    {
+                        "id": str(u.id),
+                        "username": u.username,
+                        "first_name": u.first_name,
+                        "middle_name": u.middle_name,
+                        "last_name": u.last_name,
+                        "email": u.email,
+                        "role_id": str(u.role_id),
+                        "is_active": u.is_active,
+                        "is_email_verified": u.is_email_verified,
+                        "created_at": u.created_at.isoformat() if u.created_at else None,
+                        "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
+                    }
+                )
 
-        total_pages = (total + request.page_size - 1) // request.page_size if request.page_size else 1
+        total_pages = (
+            (total + request.page_size - 1) // request.page_size if request.page_size else 1
+        )
         return QueryResponse(
             items=items,
             total=total,

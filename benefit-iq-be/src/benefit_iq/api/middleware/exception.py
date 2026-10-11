@@ -3,26 +3,27 @@
 Translates domain exceptions (AuthDomainException, UserDomainException, RoleException)
 and uncaught system exceptions into standardized ApiResponse JSON structures.
 """
+
 # pylint: disable=unused-argument
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
 from benefit_iq.api.schemas.common import ApiResponse, ErrorDetail
+from benefit_iq.domain.exceptions.auth_exceptions import (
+    AuthDomainException,
+    TokenExpiredException,
+    TokenInvalidException,
+)
 from benefit_iq.domain.exceptions.role_exceptions import (
     InvalidRoleNameException,
     RoleAlreadyExistsException,
     RoleNotFoundException,
 )
-from benefit_iq.domain.exceptions.auth_exceptions import (
-    AuthDomainException,
-    TokenInvalidException,
-    TokenExpiredException,
-)
 from benefit_iq.domain.exceptions.user_exceptions import (
+    InvalidCredentialsException,
+    UserAlreadyExistsException,
     UserDomainException,
     UserNotFoundException,
-    UserAlreadyExistsException,
-    InvalidCredentialsException,
 )
 
 
@@ -119,6 +120,8 @@ async def generic_exception_handler(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=ApiResponse(
             success=False,
-            error=ErrorDetail(message="An internal server error occurred.", code="internal_server_error"),
+            error=ErrorDetail(
+                message="An internal server error occurred.", code="internal_server_error"
+            ),
         ).model_dump(),
     )

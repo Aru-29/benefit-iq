@@ -3,18 +3,19 @@
 Provides administrative REST API endpoints for managing system key-value configuration
 properties, storing secrets in OpenBao Vault, and updating Redis cache.
 """
+
 # pylint: disable=line-too-long
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from benefit_iq.api.dependencies.auth import get_current_admin_user
 from benefit_iq.api.schemas.common import ApiResponse
-from benefit_iq.api.schemas.query import QueryRequest, QueryResponse
 from benefit_iq.api.schemas.config import (
     AppConfigResponse,
     CreateConfigRequest,
     UpdateConfigRequest,
 )
+from benefit_iq.api.schemas.query import QueryRequest, QueryResponse
 from benefit_iq.infrastructure.configuration.app_config_service import AppConfigService
 
 router = APIRouter(

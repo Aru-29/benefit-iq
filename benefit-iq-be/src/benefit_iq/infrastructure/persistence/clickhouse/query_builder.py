@@ -3,15 +3,16 @@
 Generates safe, parameterized ClickHouse SQL queries with schema validation
 from QueryRequest definitions to prevent SQL injection and enforce strong typing.
 """
+
 from typing import Any
-import re
+
 import structlog
+
 from benefit_iq.api.schemas.query import (
     FilterCondition,
     FilterGroup,
     FilterOperator,
     QueryRequest,
-    SortCondition,
     SortDirection,
 )
 
@@ -21,7 +22,12 @@ logger = structlog.get_logger(__name__)
 class ClickHouseQueryBuilder:
     """Datatype-aware parameterized SQL builder for ClickHouse queries."""
 
-    def __init__(self, table_name: str, allowed_fields: dict[str, str], searchable_fields: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        table_name: str,
+        allowed_fields: dict[str, str],
+        searchable_fields: list[str] | None = None,
+    ) -> None:
         """
         :param table_name: Name of ClickHouse table.
         :param allowed_fields: Map of API field names to ClickHouse column name / data type.
@@ -31,7 +37,9 @@ class ClickHouseQueryBuilder:
         self.table_name = table_name
         self.allowed_fields = allowed_fields
         self.searchable_fields = searchable_fields or [
-            f for f in allowed_fields.keys() if f.endswith(("name", "email", "title", "key", "description", "username"))
+            f
+            for f in allowed_fields.keys()
+            if f.endswith(("name", "email", "title", "key", "description", "username"))
         ]
 
     def build_query(self, request: QueryRequest) -> tuple[str, str, dict[str, Any], int, int]:
@@ -89,7 +97,9 @@ class ClickHouseQueryBuilder:
 
         return data_sql, count_sql, params, limit, offset
 
-    def _build_filter_group(self, group: FilterGroup, params: dict[str, Any], get_param_name) -> str:
+    def _build_filter_group(
+        self, group: FilterGroup, params: dict[str, Any], get_param_name
+    ) -> str:
         clauses: list[str] = []
         logic = " OR " if group.logic.upper() == "OR" else " AND "
 
@@ -107,7 +117,9 @@ class ClickHouseQueryBuilder:
             return ""
         return f"({logic.join(clauses)})"
 
-    def _build_condition(self, cond: FilterCondition, params: dict[str, Any], get_param_name) -> str:
+    def _build_condition(
+        self, cond: FilterCondition, params: dict[str, Any], get_param_name
+    ) -> str:
         if cond.field not in self.allowed_fields:
             return ""
 

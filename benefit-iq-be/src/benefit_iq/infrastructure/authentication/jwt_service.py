@@ -1,18 +1,26 @@
 """
 Module missing docstring.
 """
+
 from datetime import UTC, datetime, timedelta
-from typing import Any
 from uuid import UUID
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 
-from benefit_iq.application.contracts.auth.token_service import TokenService, TokenPair, TokenPayload
-from benefit_iq.domain.exceptions.auth_exceptions import TokenInvalidException, TokenExpiredException
+from benefit_iq.application.contracts.auth.token_service import (
+    TokenPair,
+    TokenPayload,
+    TokenService,
+)
+from benefit_iq.domain.exceptions.auth_exceptions import (
+    TokenExpiredException,
+    TokenInvalidException,
+)
 
 
 class JWTService(TokenService):
     """Class missing docstring."""
+
     def __init__(
         self,
         secret_key: str,
@@ -29,6 +37,7 @@ class JWTService(TokenService):
     def generate_token_pair(self, user_id: UUID, role_id: UUID, session_id: str) -> TokenPair:
         """Function missing docstring."""
         import uuid
+
         now = datetime.now(UTC)
 
         access_exp = now + timedelta(minutes=self.access_token_expire_minutes)
@@ -82,13 +91,16 @@ class JWTService(TokenService):
                 jti=payload["jti"],
             )
         except jwt.ExpiredSignatureError:
-            raise TokenExpiredException("Token has expired.")
+            raise TokenExpiredException("Token has expired.") from None
         except (JWTError, KeyError, ValueError) as e:
-            raise TokenInvalidException(f"Invalid token: {str(e)}")
+            raise TokenInvalidException(f"Invalid token: {str(e)}") from None
 
-    def _generate_single_use_token(self, user_id: UUID, token_type: str, expire_minutes: int = 1440) -> str:
+    def _generate_single_use_token(
+        self, user_id: UUID, token_type: str, expire_minutes: int = 1440
+    ) -> str:
         """Function missing docstring."""
         import uuid
+
         now = datetime.now(UTC)
         exp = now + timedelta(minutes=expire_minutes)
         payload = {
@@ -108,9 +120,9 @@ class JWTService(TokenService):
                 raise TokenInvalidException(f"Expected token type '{expected_type}'")
             return UUID(payload["sub"])
         except jwt.ExpiredSignatureError:
-            raise TokenExpiredException("Token has expired.")
+            raise TokenExpiredException("Token has expired.") from None
         except (JWTError, KeyError, ValueError) as e:
-            raise TokenInvalidException(f"Invalid token: {str(e)}")
+            raise TokenInvalidException(f"Invalid token: {str(e)}") from None
 
     def generate_verification_token(self, user_id: UUID) -> str:
         """Function missing docstring."""

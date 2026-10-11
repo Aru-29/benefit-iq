@@ -1,6 +1,6 @@
 """AppConfig Repository Interface Contract."""
+
 from abc import ABC, abstractmethod
-from uuid import UUID
 
 from benefit_iq.domain.entities.app_config import AppConfig
 
@@ -21,9 +21,7 @@ class AppConfigRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_configs(
-        self, application: str, environment: str
-    ) -> list[AppConfig]:
+    async def list_configs(self, application: str, environment: str) -> list[AppConfig]:
         """Lists active configuration entries for a specific application and environment."""
         ...
 
@@ -33,8 +31,6 @@ class AppConfigRepository(ABC):
         ...
 
     @abstractmethod
-    async def delete(
-        self, application: str, environment: str, config_key: str
-    ) -> bool:
+    async def delete(self, application: str, environment: str, config_key: str) -> bool:
         """Soft deletes / deactivates a configuration record."""
         ...

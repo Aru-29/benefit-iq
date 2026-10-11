@@ -1,18 +1,18 @@
 """
 Module missing docstring.
 """
+
+from email.message import EmailMessage
+from typing import TYPE_CHECKING, Any
+
 import aiosmtplib
 import structlog
-from email.message import EmailMessage
 
 from benefit_iq.application.contracts.auth.email_service import EmailService
 from benefit_iq.infrastructure.utils.retry import with_retry
 
-
-from typing import TYPE_CHECKING, Any
-
 if TYPE_CHECKING:
-    from benefit_iq.infrastructure.configuration.app_config_service import AppConfigService
+    pass
 
 
 logger = structlog.get_logger(__name__)
@@ -20,6 +20,7 @@ logger = structlog.get_logger(__name__)
 
 class SmtpEmailService(EmailService):
     """Class missing docstring."""
+
     def __init__(
         self,
         host: str,
@@ -101,9 +102,7 @@ class SmtpEmailService(EmailService):
 
         try:
             await with_retry(
-                operation=do_send,
-                max_attempts=3,
-                operation_name=f"smtp_send_{to_email}"
+                operation=do_send, max_attempts=3, operation_name=f"smtp_send_{to_email}"
             )
             logger.info("email_sent", to_email=to_email, subject=subject)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -113,6 +112,7 @@ class SmtpEmailService(EmailService):
                 error=str(e),
             )
             from benefit_iq.domain.exceptions.auth_exceptions import AuthDomainException
+
             raise AuthDomainException(
                 f"Failed to send email to {to_email}. Ensure SMTP mail server configuration is valid. Error: {str(e)}"
             ) from e
@@ -161,7 +161,11 @@ class SmtpEmailService(EmailService):
 
     async def send_otp_email(self, to_email: str, otp: str, purpose: str) -> None:
         """Sends a 2-Step OTP verification code to user's email."""
-        title = "Registration Verification Code" if purpose == "registration" else "Login 2FA Security Code"
+        title = (
+            "Registration Verification Code"
+            if purpose == "registration"
+            else "Login 2FA Security Code"
+        )
         content = f"""
         <html>
             <body style="font-family: Arial, sans-serif; padding: 20px;">

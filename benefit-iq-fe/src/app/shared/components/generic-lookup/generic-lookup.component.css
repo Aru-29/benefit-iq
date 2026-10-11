@@ -1,0 +1,109 @@
+.lookup-container {
+  position: relative;
+  width: 100%;
+}
+
+.lookup-label {
+  display: block;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+  color: var(--color-text-secondary);
+}
+
+.lookup-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lookup-input {
+  width: 100%;
+  padding: 0.625rem 2rem 0.625rem 0.875rem;
+  font-size: var(--font-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.lookup-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.lookup-spinner {
+  position: absolute;
+  right: 2rem;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.lookup-clear {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+}
+
+.lookup-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 4px;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.lookup-item {
+  padding: 0.625rem 0.875rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.lookup-item:hover,
+.lookup-item.highlighted {
+  background: var(--color-surface-hover);
+}
+
+.lookup-item.selected {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.lookup-item-label {
+  font-weight: 500;
+  font-size: var(--font-sm);
+}
+
+.lookup-item-desc {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+}
+
+.lookup-empty,
+.lookup-loading-more {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

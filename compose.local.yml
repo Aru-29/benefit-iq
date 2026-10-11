@@ -1,0 +1,28 @@
+name: benefitiq-local
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8.4.13-alpine
+    ports: ["127.0.0.1:18123:8123"]
+    environment:
+      CLICKHOUSE_DB: benefitiq
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: local-development-only
+    volumes: ["benefitiq-local-data:/var/lib/clickhouse"]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7.2.5-alpine
+    ports: ["127.0.0.1:16379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports: ["127.0.0.1:11025:1025", "127.0.0.1:18025:8025"]
+volumes:
+  benefitiq-local-data:

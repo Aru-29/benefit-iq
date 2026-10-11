@@ -1,9 +1,11 @@
 """Redis Sliding Window Rate Limiting Middleware."""
+
 import time
+
+from fastapi import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from fastapi import status
 
 from benefit_iq.infrastructure.cache.redis.redis_cache import RedisCache
 

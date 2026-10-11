@@ -1,13 +1,14 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
 
-from benefit_iq.application.contracts.auth.token_service import TokenService
-from benefit_iq.application.contracts.auth.email_service import EmailService
-from benefit_iq.application.contracts.repositories.user_repository import UserRepository
+import structlog
 
+from benefit_iq.application.contracts.auth.email_service import EmailService
+from benefit_iq.application.contracts.auth.token_service import TokenService
+from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 
 logger = structlog.get_logger(__name__)
 
@@ -15,12 +16,13 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class ForgotPasswordCommand:
     """Class missing docstring."""
+
     email: str
 
 
 class ForgotPasswordHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         user_repository: UserRepository,

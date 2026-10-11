@@ -3,8 +3,9 @@
 Persists user sessions and refresh token JTIs in ClickHouse datastore (benefitiq.user_sessions)
 while leveraging Redis for fast read-through caching and immediate session revocation.
 """
+
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog
@@ -33,7 +34,7 @@ class HybridRefreshTokenStore(RefreshTokenStore):
 
     async def store_token(self, jti: str, user_id: str, session_id: str, expires_in: int) -> None:
         """Stores refresh token record in ClickHouse and populates Redis cache."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(seconds=expires_in)
 
         # 1. Write to primary ClickHouse datastore
@@ -42,15 +43,17 @@ class HybridRefreshTokenStore(RefreshTokenStore):
             None,
             lambda: self.db.client.insert(
                 "user_sessions",
-                [[
-                    UUID(session_id),
-                    UUID(user_id),
-                    jti,
-                    0,  # is_revoked = 0
-                    expires_at,
-                    now,
-                    now,
-                ]],
+                [
+                    [
+                        UUID(session_id),
+                        UUID(user_id),
+                        jti,
+                        0,  # is_revoked = 0
+                        expires_at,
+                        now,
+                        now,
+                    ]
+                ],
                 column_names=[
                     "id",
                     "user_id",
@@ -73,6 +76,7 @@ class HybridRefreshTokenStore(RefreshTokenStore):
 
     async def is_valid(self, jti: str) -> bool:
         """Checks token validity in Redis cache first, falling back to ClickHouse on cache miss."""
+
         # 1. Check Redis cache
         async def do_cache_check() -> bool | None:
             val = await self.redis.get(self._jti_key(jti))
@@ -93,9 +97,9 @@ class HybridRefreshTokenStore(RefreshTokenStore):
             return False
 
         is_revoked, expires_at = result.result_rows[0]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
 
         valid = (is_revoked == 0) and (expires_at > now)
 
@@ -109,7 +113,7 @@ class HybridRefreshTokenStore(RefreshTokenStore):
 
     async def revoke_token(self, jti: str) -> None:
         """Revokes a specific token JTI in ClickHouse datastore and invalidates Redis cache."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Find existing session record
         result = await self.db.query_async(
@@ -144,7 +148,7 @@ class HybridRefreshTokenStore(RefreshTokenStore):
 
     async def revoke_session(self, session_id: str) -> None:
         """Revokes all tokens associated with a session in ClickHouse and Redis."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1. Update ClickHouse
         result = await self.db.query_async(
@@ -191,6 +195,7 @@ class HybridRefreshTokenStore(RefreshTokenStore):
 
     async def is_session_valid(self, session_id: str) -> bool:
         """Checks whether a session is valid in Redis cache or ClickHouse datastore."""
+
         async def do_cache_session_check() -> bool:
             return await self.redis.exists(self._session_key(session_id)) == 1
 
@@ -204,10 +209,9 @@ class HybridRefreshTokenStore(RefreshTokenStore):
         if not result.result_rows:
             return False
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return any(
-            is_revoked == 0 and (
-                expires_at.replace(tzinfo=timezone.utc) if expires_at.tzinfo is None else expires_at
-            ) > now
+            is_revoked == 0
+            and (expires_at.replace(tzinfo=UTC) if expires_at.tzinfo is None else expires_at) > now
             for is_revoked, expires_at in result.result_rows
         )

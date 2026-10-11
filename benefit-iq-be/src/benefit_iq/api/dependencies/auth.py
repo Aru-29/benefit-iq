@@ -1,19 +1,20 @@
 """Authentication Dependency Injection Handlers for FastAPI Routes."""
+
 from typing import Annotated
 from uuid import UUID
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from dependency_injector.wiring import Provide, inject
 
-from benefit_iq.domain.entities.user import User
+from dependency_injector.wiring import Provide, inject
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from benefit_iq.application.auth.queries.get_current_user import (
-    GetCurrentUserQuery,
     GetCurrentUserHandler,
+    GetCurrentUserQuery,
 )
+from benefit_iq.domain.entities.user import User
+from benefit_iq.domain.exceptions.auth_exceptions import AuthDomainException
 from benefit_iq.infrastructure.authentication.jwt_service import JWTService
 from benefit_iq.infrastructure.authentication.refresh_token_store import RedisRefreshTokenStore
-from benefit_iq.domain.exceptions.auth_exceptions import AuthDomainException
-
 
 oauth2_scheme = HTTPBearer()
 
@@ -22,9 +23,7 @@ oauth2_scheme = HTTPBearer()
 async def get_current_user_id(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(oauth2_scheme)],
     jwt_service: JWTService = Depends(Provide["token_service"]),
-    refresh_token_store: RedisRefreshTokenStore = Depends(
-        Provide["refresh_token_store"]
-    ),
+    refresh_token_store: RedisRefreshTokenStore = Depends(Provide["refresh_token_store"]),
 ) -> UUID:
     """Extracts and validates current authenticated user ID from JWT bearer token."""
     try:
@@ -78,7 +77,7 @@ async def get_current_admin_user(
 ) -> User:
     """Ensures current authenticated user has administrative privileges (Role: ADMIN)."""
     role = await role_repository.get_by_id(user.role_id)
-    if not role or role.name.upper() != "ADMIN":
+    if not role or not role.is_active or role.name.upper() != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden. Administrative privileges required.",

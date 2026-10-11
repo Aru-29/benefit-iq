@@ -1,4 +1,5 @@
 """AppConfig Domain Entity."""
+
 # pylint: disable=too-many-instance-attributes,line-too-long
 from dataclasses import dataclass
 from datetime import datetime

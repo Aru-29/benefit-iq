@@ -1,11 +1,13 @@
 """
 Module missing docstring.
 """
+
 from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterRequest(BaseModel):
     """Class missing docstring."""
+
     email: EmailStr
     password: str = Field(..., min_length=8)
     first_name: str
@@ -30,16 +32,19 @@ class VerifyOtpRequest(BaseModel):
 
 class RefreshRequest(BaseModel):
     """Class missing docstring."""
+
     refresh_token: str
 
 
 class ForgotPasswordRequest(BaseModel):
     """Class missing docstring."""
+
     email: EmailStr
 
 
 class ResetPasswordRequest(BaseModel):
     """Class missing docstring."""
+
     token: str
     new_password: str = Field(..., min_length=8)
 
@@ -56,6 +61,7 @@ class ChangePasswordRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     """Class missing docstring."""
+
     token: str
 
 
@@ -68,6 +74,7 @@ class OAuthLoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     """Class missing docstring."""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"

@@ -58,4 +58,17 @@ export class AdminApiService {
   getUsers(): Observable<UserResponse[]> {
     return this.http.get<UserResponse[]>(this.usersUrl);
   }
+
+  // Dashboard / Analytics Endpoints
+  getKpi(): Observable<any> {
+    return this.http.get<any>('/api/v1/analytics/kpi');
+  }
+
+  getRedisStats(): Observable<any> {
+    return this.http.get<any>('/api/v1/system/redis/stats');
+  }
+  
+  getAdminUsers(): Observable<any> {
+    return this.http.get<any>('/api/v1/users');
+  }
 }

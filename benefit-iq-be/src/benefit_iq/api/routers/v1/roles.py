@@ -3,19 +3,21 @@
 Provides administrative endpoints for listing system roles, creating custom roles,
 updating role properties, and deactivating access control rules.
 """
+
 from uuid import UUID
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, status
 
+from benefit_iq.api.dependencies.auth import get_current_admin_user
 from benefit_iq.api.schemas.common import (
     ApiResponse,
 )
 from benefit_iq.api.schemas.lookup import GenericLookupResponse, LookupItem
 from benefit_iq.api.schemas.roles import (
     CreateRoleRequest,
-    UpdateRoleRequest,
     RoleResponse,
+    UpdateRoleRequest,
 )
 from benefit_iq.application.roles.commands.create_role import (
     CreateRoleCommand,
@@ -38,10 +40,6 @@ from benefit_iq.application.roles.queries.list_roles import (
     ListRolesQuery,
 )
 
-
-from benefit_iq.api.dependencies.auth import get_current_admin_user
-
-
 router = APIRouter(
     prefix="/roles",
     tags=["Roles & Access Control"],
@@ -57,11 +55,8 @@ router = APIRouter(
 @inject
 async def create_role(
     request: CreateRoleRequest,
-    handler: CreateRoleHandler = Depends(
-        Provide["create_role_handler"]
-    ),
+    handler: CreateRoleHandler = Depends(Provide["create_role_handler"]),
 ):
-
     """Async function missing docstring."""
     role = await handler.handle(
         CreateRoleCommand(
@@ -91,7 +86,11 @@ async def lookup_roles(
     roles = await handler.handle(ListRolesQuery(page=page, page_size=page_size))
     items = []
     for r in roles:
-        if search and search.lower() not in r.name.lower() and search.lower() not in (r.description or "").lower():
+        if (
+            search
+            and search.lower() not in r.name.lower()
+            and search.lower() not in (r.description or "").lower()
+        ):
             continue
         items.append(
             LookupItem(
@@ -121,11 +120,8 @@ async def lookup_roles(
 @inject
 async def get_role(
     role_id: UUID,
-    handler: GetRoleHandler = Depends(
-        Provide["get_role_handler"]
-    ),
+    handler: GetRoleHandler = Depends(Provide["get_role_handler"]),
 ):
-
     """Async function missing docstring."""
     role = await handler.handle(
         GetRoleQuery(
@@ -141,19 +137,14 @@ async def get_role(
 
 @router.get(
     "",
-    response_model=ApiResponse[
-        list[RoleResponse]
-    ],
+    response_model=ApiResponse[list[RoleResponse]],
 )
 @inject
 async def list_roles(
     page: int = 1,
     page_size: int = 20,
-    handler: ListRolesHandler = Depends(
-        Provide["list_roles_handler"]
-    ),
+    handler: ListRolesHandler = Depends(Provide["list_roles_handler"]),
 ):
-
     """Async function missing docstring."""
     roles = await handler.handle(
         ListRolesQuery(
@@ -164,10 +155,7 @@ async def list_roles(
 
     return ApiResponse(
         success=True,
-        data=[
-            RoleResponse.model_validate(role)
-            for role in roles
-        ],
+        data=[RoleResponse.model_validate(role) for role in roles],
     )
 
 
@@ -179,11 +167,8 @@ async def list_roles(
 async def update_role(
     role_id: UUID,
     request: UpdateRoleRequest,
-    handler: UpdateRoleHandler = Depends(
-        Provide["update_role_handler"]
-    ),
+    handler: UpdateRoleHandler = Depends(Provide["update_role_handler"]),
 ):
-
     """Async function missing docstring."""
     role = await handler.handle(
         UpdateRoleCommand(
@@ -207,11 +192,8 @@ async def update_role(
 @inject
 async def deactivate_role(
     role_id: UUID,
-    handler: DeactivateRoleHandler = Depends(
-        Provide["deactivate_role_handler"]
-    ),
+    handler: DeactivateRoleHandler = Depends(Provide["deactivate_role_handler"]),
 ):
-
     """Async function missing docstring."""
     role = await handler.handle(
         DeactivateRoleCommand(

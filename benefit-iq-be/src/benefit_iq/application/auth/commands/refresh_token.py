@@ -1,20 +1,20 @@
 """
 Module missing docstring.
 """
-import structlog
-from dataclasses import dataclass
-from datetime import UTC, datetime
 
-from benefit_iq.application.contracts.auth.token_service import TokenService, TokenPair
+from dataclasses import dataclass
+
+import structlog
+
 from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
+from benefit_iq.application.contracts.auth.token_service import TokenPair, TokenService
 from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.exceptions.auth_exceptions import (
-    TokenInvalidException,
     RefreshTokenReusedException,
     TokenFamilyRevokedException,
+    TokenInvalidException,
 )
 from benefit_iq.domain.exceptions.user_exceptions import UserNotFoundException
-
 
 logger = structlog.get_logger(__name__)
 
@@ -22,12 +22,13 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class RefreshTokenCommand:
     """Class missing docstring."""
+
     refresh_token: str
 
 
 class RefreshTokenHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         token_service: TokenService,
@@ -53,7 +54,7 @@ class RefreshTokenHandler:
         if not is_session_valid:
             raise TokenFamilyRevokedException("Session has been revoked.")
 
-        is_token_valid = await self.refresh_token_store.is_valid(payload.jti)
+        is_token_valid = await self.refresh_token_store.consume_token(payload.jti)
         if not is_token_valid:
             # Token is valid cryptographically but not in the store -> Reuse detected!
             logger.warning(
@@ -70,7 +71,6 @@ class RefreshTokenHandler:
             raise UserNotFoundException("User not found or inactive.")
 
         # Revoke the used refresh token
-        await self.refresh_token_store.revoke_token(payload.jti)
 
         # Generate a new token pair
         token_pair = self.token_service.generate_token_pair(
@@ -84,7 +84,7 @@ class RefreshTokenHandler:
             jti=new_payload.jti,
             user_id=str(user.id),
             session_id=payload.session_id,
-            expires_in=token_pair.expires_in,
+            expires_in=self.token_service.refresh_token_expire_days * 86400,
         )
 
         logger.info(

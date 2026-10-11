@@ -1,14 +1,15 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
+
+import structlog
 
 from benefit_iq.application.contracts.auth.token_service import TokenService
 from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.exceptions.auth_exceptions import TokenInvalidException
 from benefit_iq.domain.exceptions.user_exceptions import UserNotFoundException
-
 
 logger = structlog.get_logger(__name__)
 
@@ -16,12 +17,13 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class VerifyEmailCommand:
     """Class missing docstring."""
+
     token: str
 
 
 class VerifyEmailHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         user_repository: UserRepository,

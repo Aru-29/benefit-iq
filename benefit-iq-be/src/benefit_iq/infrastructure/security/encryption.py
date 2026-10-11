@@ -1,7 +1,9 @@
 """Cryptography and Encryption Services for Benefit IQ."""
+
 import base64
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 

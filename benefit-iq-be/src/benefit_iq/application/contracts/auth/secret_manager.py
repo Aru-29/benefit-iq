@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from abc import ABC, abstractmethod
 
 

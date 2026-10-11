@@ -1,4 +1,5 @@
 """2-Step OTP User Registration Command and Handler Module."""
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -16,7 +17,6 @@ from benefit_iq.domain.enums.auth_provider import AuthProvider
 from benefit_iq.domain.enums.system_role import SystemRole
 from benefit_iq.domain.exceptions.role_exceptions import RoleNotFoundException
 from benefit_iq.domain.exceptions.user_exceptions import (
-    InvalidCredentialsException,
     InvalidOtpException,
     UserAlreadyExistsException,
 )
@@ -78,7 +78,9 @@ class RegisterUserHandler:
 
         existing_username = await self.user_repository.get_by_username(command.username)
         if existing_username:
-            raise UserAlreadyExistsException(f"User with username '{command.username}' already exists.")
+            raise UserAlreadyExistsException(
+                f"User with username '{command.username}' already exists."
+            )
 
         customer_role = await self.role_repository.get_by_name(SystemRole.CUSTOMER.value)
         if not customer_role:
@@ -86,7 +88,7 @@ class RegisterUserHandler:
 
         # Decrypt password if encrypted from frontend
         plain_password = command.password
-        if hasattr(self, 'password_encryption') and getattr(self, 'password_encryption') is not None:
+        if hasattr(self, "password_encryption") and self.password_encryption is not None:
             try:
                 plain_password = self.password_encryption.decrypt(command.password)
             except Exception:
@@ -112,10 +114,14 @@ class RegisterUserHandler:
 
         # Generate & send OTP email
         otp = await self.otp_service.generate_otp(purpose="registration", key=command.email)
-        await self.email_service.send_otp_email(to_email=command.email, otp=otp, purpose="registration")
+        await self.email_service.send_otp_email(
+            to_email=command.email, otp=otp, purpose="registration"
+        )
 
         logger.info("registration_otp_sent", email=command.email)
-        return {"message": "Registration OTP code sent to your email. Please verify to complete account setup."}
+        return {
+            "message": "Registration OTP code sent to your email. Please verify to complete account setup."
+        }
 
     async def handle_verify_otp(self, command: VerifyRegistrationOtpCommand) -> TokenPair:
         """Step 2: Verifies registration OTP code, persists user account, and issues JWT tokens."""
@@ -130,7 +136,9 @@ class RegisterUserHandler:
             raise InvalidOtpException("Registration session expired. Please register again.")
 
         role_id_raw = pending_data.get("role_id")
-        role_id_val = UUID(role_id_raw) if isinstance(role_id_raw, str) else (role_id_raw or uuid4())
+        role_id_val = (
+            UUID(role_id_raw) if isinstance(role_id_raw, str) else (role_id_raw or uuid4())
+        )
 
         now = datetime.now(UTC)
         user = User(
@@ -164,7 +172,7 @@ class RegisterUserHandler:
             )
             if self.refresh_token_store:
                 refresh_payload = self.token_service.decode_token(token_pair.refresh_token)
-                refresh_ttl = getattr(self.token_service, 'refresh_token_expire_days', 7) * 86400
+                refresh_ttl = getattr(self.token_service, "refresh_token_expire_days", 7) * 86400
                 await self.refresh_token_store.store_token(
                     jti=refresh_payload.jti,
                     user_id=str(result.id),

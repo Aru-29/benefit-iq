@@ -1,4 +1,5 @@
 """AppConfig API Request and Response Schemas."""
+
 from datetime import datetime
 from uuid import UUID
 

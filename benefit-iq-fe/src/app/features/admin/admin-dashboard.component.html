@@ -1,0 +1,41 @@
+<main>
+  <h1>Portfolio overview</h1>
+  <p>Current-cycle cash credits, calculated from customer entitlements. Synthetic catalogue data is for demonstration.</p>
+  <p *ngIf="error()" role="alert">{{error()}}</p>
+  <button (click)="load()">Refresh</button>
+  <section *ngIf="kpi() as k">
+    <article>
+      <small>Cash available</small>
+      <strong>{{k.remaining_value | currency:k.currency}}</strong>
+    </article>
+    <article>
+      <small>Recorded cash use</small>
+      <strong>{{k.used_value | currency:k.currency}}</strong>
+    </article>
+    <article>
+      <small>Active members</small>
+      <strong>{{k.active_customers}}</strong>
+    </article>
+  </section>
+  <h2>Runtime</h2>
+  <pre>{{runtime() | json}}</pre>
+  <h2>Members</h2>
+  <div class="table">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of users()">
+          <td>{{u.first_name}} {{u.last_name}}</td>
+          <td>{{u.email}}</td>
+          <td>{{u.role_name}}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>

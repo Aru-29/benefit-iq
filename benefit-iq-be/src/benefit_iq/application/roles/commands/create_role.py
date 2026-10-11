@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -16,20 +17,20 @@ from benefit_iq.domain.exceptions.role_exceptions import (
 )
 from benefit_iq.domain.valueobjects.role_name import RoleName
 
-
 logger = structlog.get_logger(__name__)
 
 
 @dataclass(frozen=True)
 class CreateRoleCommand:
     """Class missing docstring."""
+
     name: str
     description: str | None = None
 
 
 class CreateRoleHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         repository: RoleRepository,
@@ -41,18 +42,13 @@ class CreateRoleHandler:
         self,
         command: CreateRoleCommand,
     ) -> Role:
-
         """Async function missing docstring."""
         role_name = RoleName(command.name)
 
-        existing = await self.repository.get_by_name(
-            role_name.value
-        )
+        existing = await self.repository.get_by_name(role_name.value)
 
         if existing:
-            raise RoleAlreadyExistsException(
-                f"Role '{role_name.value}' already exists."
-            )
+            raise RoleAlreadyExistsException(f"Role '{role_name.value}' already exists.")
 
         now = datetime.now(UTC)
 

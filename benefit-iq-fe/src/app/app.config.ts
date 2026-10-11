@@ -8,7 +8,7 @@ import { cancelInterceptor } from './core/interceptors/cancel.interceptor';
 import { routes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
-import { SocialAuthServiceConfig, GoogleLoginProvider, MicrosoftLoginProvider, SOCIAL_AUTH_CONFIG } from '@abacritt/angularx-social-login';
+import { SocialAuthServiceConfig, GoogleLoginProvider, MicrosoftLoginProvider } from '@abacritt/angularx-social-login';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -23,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       ])
     ),
     {
-      provide: SOCIAL_AUTH_CONFIG,
+      provide: 'SocialAuthServiceConfig',
       useValue: {
         autoLogin: false,
         providers: [

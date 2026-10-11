@@ -3,20 +3,21 @@
 Exposes endpoints for RSA encryption, RSA decryption, Base32 alphanumeric transport encoding,
 and Argon2id password hashing and verification.
 """
+
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from benefit_iq.api.dependencies.auth import get_current_admin_user
 from benefit_iq.api.schemas.common import ApiResponse
 from benefit_iq.api.schemas.crypto import (
+    CryptoResultResponse,
     DecryptAlphanumericRequest,
     DecryptRequest,
     EncryptAlphanumericRequest,
     EncryptRequest,
-    CryptoResultResponse,
     HashPasswordRequest,
     VerifyHashRequest,
 )
-from benefit_iq.api.dependencies.auth import get_current_admin_user
 from benefit_iq.infrastructure.security.encryption import PasswordEncryptionService
 from benefit_iq.infrastructure.security.password_hasher import Argon2PasswordHasher
 

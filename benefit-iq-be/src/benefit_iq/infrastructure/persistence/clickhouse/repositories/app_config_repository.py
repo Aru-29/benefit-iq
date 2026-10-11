@@ -1,6 +1,8 @@
 """ClickHouse implementation of AppConfigRepository."""
+
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
 from benefit_iq.application.contracts.repositories.app_config_repository import AppConfigRepository
 from benefit_iq.domain.entities.app_config import AppConfig
@@ -33,20 +35,22 @@ class ClickHouseAppConfigRepository(AppConfigRepository):
 
     async def create(self, config: AppConfig) -> AppConfig:
         """Inserts an app configuration record into ClickHouse datastore."""
-        data = [[
-            str(config.id),
-            config.application,
-            config.environment,
-            config.config_key,
-            config.config_value if config.config_value is not None else "",
-            1 if config.is_secret else 0,
-            config.secret_path or "",
-            config.secret_key or "",
-            config.description or "",
-            1 if config.is_active else 0,
-            config.created_at,
-            config.updated_at,
-        ]]
+        data = [
+            [
+                str(config.id),
+                config.application,
+                config.environment,
+                config.config_key,
+                config.config_value if config.config_value is not None else "",
+                1 if config.is_secret else 0,
+                config.secret_path or "",
+                config.secret_key or "",
+                config.description or "",
+                1 if config.is_active else 0,
+                config.created_at,
+                config.updated_at,
+            ]
+        ]
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             None,
@@ -89,9 +93,7 @@ class ClickHouseAppConfigRepository(AppConfigRepository):
             return None
         return self._map_row_to_config(result.result_rows[0])
 
-    async def list_configs(
-        self, application: str, environment: str
-    ) -> list[AppConfig]:
+    async def list_configs(self, application: str, environment: str) -> list[AppConfig]:
         """Lists all active configuration entries for an application and environment."""
         query = (
             "SELECT id, application, environment, config_key, config_value, is_secret, "
@@ -100,31 +102,29 @@ class ClickHouseAppConfigRepository(AppConfigRepository):
             "WHERE application = %(app)s AND environment = %(env)s AND is_active = 1 "
             "ORDER BY config_key ASC"
         )
-        result = await self.db.query_async(
-            query, {"app": application, "env": environment}
-        )
+        result = await self.db.query_async(query, {"app": application, "env": environment})
         return [self._map_row_to_config(row) for row in result.result_rows]
 
     async def update(self, config: AppConfig) -> AppConfig:
         """Updates an existing configuration record using ReplacingMergeTree versioning."""
         return await self.create(config)
 
-    async def delete(
-        self, application: str, environment: str, config_key: str
-    ) -> bool:
+    async def delete(self, application: str, environment: str, config_key: str) -> bool:
         """Deactivates/soft deletes configuration entry by setting is_active = 0."""
         cfg = await self.get_by_key(application, environment, config_key)
         if not cfg:
             return False
         cfg.is_active = False
-        cfg.updated_at = datetime.now(timezone.utc)
+        cfg.updated_at = datetime.now(UTC)
         await self.update(cfg)
         return True
 
     async def query_generic(self, request) -> Any:
         """Executes generic query across app_config table."""
         from benefit_iq.api.schemas.query import QueryResponse
-        from benefit_iq.infrastructure.persistence.clickhouse.query_builder import ClickHouseQueryBuilder
+        from benefit_iq.infrastructure.persistence.clickhouse.query_builder import (
+            ClickHouseQueryBuilder,
+        )
 
         builder = ClickHouseQueryBuilder(
             table_name="benefitiq.app_config FINAL",
@@ -153,22 +153,26 @@ class ClickHouseAppConfigRepository(AppConfigRepository):
         if data_res and data_res.result_rows:
             for row in data_res.result_rows:
                 c = self._map_row_to_config(row)
-                items.append({
-                    "id": str(c.id),
-                    "application": c.application,
-                    "environment": c.environment,
-                    "config_key": c.config_key,
-                    "config_value": c.config_value if not c.is_secret else "*****",
-                    "is_secret": c.is_secret,
-                    "secret_path": c.secret_path,
-                    "secret_key": c.secret_key,
-                    "description": c.description,
-                    "is_active": c.is_active,
-                    "created_at": c.created_at.isoformat() if c.created_at else None,
-                    "updated_at": c.updated_at.isoformat() if c.updated_at else None,
-                })
+                items.append(
+                    {
+                        "id": str(c.id),
+                        "application": c.application,
+                        "environment": c.environment,
+                        "config_key": c.config_key,
+                        "config_value": c.config_value if not c.is_secret else "*****",
+                        "is_secret": c.is_secret,
+                        "secret_path": c.secret_path,
+                        "secret_key": c.secret_key,
+                        "description": c.description,
+                        "is_active": c.is_active,
+                        "created_at": c.created_at.isoformat() if c.created_at else None,
+                        "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+                    }
+                )
 
-        total_pages = (total + request.page_size - 1) // request.page_size if request.page_size else 1
+        total_pages = (
+            (total + request.page_size - 1) // request.page_size if request.page_size else 1
+        )
         return QueryResponse(
             items=items,
             total=total,

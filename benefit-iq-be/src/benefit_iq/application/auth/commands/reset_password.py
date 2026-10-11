@@ -1,17 +1,18 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
 
-from benefit_iq.application.contracts.auth.password_hasher import PasswordHasher
-from benefit_iq.application.contracts.auth.token_service import TokenService
+import structlog
+
 from benefit_iq.application.contracts.auth.email_service import EmailService
+from benefit_iq.application.contracts.auth.password_hasher import PasswordHasher
 from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
+from benefit_iq.application.contracts.auth.token_service import TokenService
 from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.exceptions.auth_exceptions import TokenInvalidException
 from benefit_iq.domain.exceptions.user_exceptions import UserNotFoundException
-
 
 logger = structlog.get_logger(__name__)
 
@@ -19,13 +20,14 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class ResetPasswordCommand:
     """Class missing docstring."""
+
     token: str
     new_password: str
 
 
 class ResetPasswordHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         user_repository: UserRepository,
@@ -61,9 +63,7 @@ class ResetPasswordHandler:
         # Implementation depends on how we query sessions by user_id in Redis.
         # This will be handled in the infrastructure layer.
 
-        await self.email_service.send_password_changed_notification(
-            to_email=user.email
-        )
+        await self.email_service.send_password_changed_notification(to_email=user.email)
 
         logger.info(
             "password_reset_completed",

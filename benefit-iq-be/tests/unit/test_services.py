@@ -1,4 +1,3 @@
-from benefit_iq.api.dependencies.services import get_clickhouse_database
 from benefit_iq.infrastructure.dependency_injection.container import init_container
 from benefit_iq.infrastructure.persistence.clickhouse.database import ClickHouseDatabase
 
@@ -18,4 +17,3 @@ def test_get_clickhouse_database_dependency():
         assert isinstance(db, ClickHouseDatabase)
     finally:
         container.unwire()
-

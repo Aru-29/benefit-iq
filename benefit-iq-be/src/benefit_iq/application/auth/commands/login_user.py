@@ -1,9 +1,11 @@
 """2-Step 2FA OTP Login User Command and Handler Module."""
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
+from opentelemetry import trace
 
 from benefit_iq.application.contracts.auth.email_service import EmailService
 from benefit_iq.application.contracts.auth.password_hasher import PasswordHasher
@@ -17,7 +19,6 @@ from benefit_iq.domain.exceptions.user_exceptions import (
 )
 from benefit_iq.infrastructure.security.encryption import PasswordEncryptionService
 from benefit_iq.infrastructure.security.otp_service import OtpService
-from opentelemetry import trace
 
 logger = structlog.get_logger(__name__)
 tracer = trace.get_tracer(__name__)
@@ -85,7 +86,9 @@ class LoginUserHandler:
                     plain_password = self.password_encryption.decrypt(command.password)
                 except Exception:  # pylint: disable=broad-exception-caught
                     try:
-                        plain_password = self.password_encryption.decrypt_alphanumeric(command.password)
+                        plain_password = self.password_encryption.decrypt_alphanumeric(
+                            command.password
+                        )
                     except Exception:  # pylint: disable=broad-exception-caught
                         plain_password = command.password
 
@@ -97,15 +100,17 @@ class LoginUserHandler:
 
             # Generate & send 2FA Login OTP code
             otp = await self.otp_service.generate_otp(purpose="login", key=command.email)
-            await self.email_service.send_otp_email(to_email=command.email, otp=otp, purpose="login")
+            await self.email_service.send_otp_email(
+                to_email=command.email, otp=otp, purpose="login"
+            )
 
             logger.info("login_otp_sent", email=command.email)
             span.set_attribute("login.result", "success_otp_sent")
-            return {"message": "Login 2FA OTP code sent to your email. Please verify to receive access tokens."}
+            return {
+                "message": "Login 2FA OTP code sent to your email. Please verify to receive access tokens."
+            }
 
-    async def handle_verify_login_otp(
-        self, command: VerifyLoginOtpCommand
-    ) -> TokenPair:
+    async def handle_verify_login_otp(self, command: VerifyLoginOtpCommand) -> TokenPair:
         """Step 2: Verifies 2FA login OTP code and issues JWT access & refresh token pair."""
         with tracer.start_as_current_span("login_user_step_2") as span:
             is_valid = await self.otp_service.verify_otp(

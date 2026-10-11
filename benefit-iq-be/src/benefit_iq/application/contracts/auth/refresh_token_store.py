@@ -1,8 +1,8 @@
 """
 Module missing docstring.
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class RefreshTokenStore(ABC):
@@ -31,4 +31,9 @@ class RefreshTokenStore(ABC):
     @abstractmethod
     async def is_session_valid(self, session_id: str) -> bool:
         """Checks if a session is still valid."""
+        ...
+
+    @abstractmethod
+    async def consume_token(self, jti: str) -> bool:
+        """Atomically consume a refresh token. Adapters must implement this."""
         ...

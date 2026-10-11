@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,6 +11,7 @@ from uuid import UUID
 @dataclass
 class TokenPayload:
     """Class missing docstring."""
+
     user_id: UUID
     role_id: UUID
     session_id: str
@@ -21,6 +23,7 @@ class TokenPayload:
 @dataclass
 class TokenPair:
     """Class missing docstring."""
+
     access_token: str
     refresh_token: str
     expires_in: int

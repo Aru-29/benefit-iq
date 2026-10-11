@@ -1,6 +1,7 @@
 """Change Password Command and Handler for Local and SSO Users."""
+
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import structlog
@@ -48,7 +49,9 @@ class ChangePasswordHandler:
         if user.password_hash is not None:
             # Local password exists -> Require current password verification
             if not command.current_password:
-                raise InvalidCredentialsException("Current password is required to change existing password.")
+                raise InvalidCredentialsException(
+                    "Current password is required to change existing password."
+                )
             is_valid = self.password_hasher.verify_password(
                 command.current_password, user.password_hash
             )
@@ -59,7 +62,7 @@ class ChangePasswordHandler:
             logger.info("sso_user_setting_initial_password", user_id=str(user.id))
 
         # Hash & update password
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         hashed_password = self.password_hasher.hash_password(command.new_password)
         user.password_hash = hashed_password
         user.updated_at = now

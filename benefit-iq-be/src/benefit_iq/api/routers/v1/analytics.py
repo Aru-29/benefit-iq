@@ -1,96 +1,316 @@
-"""Benefit Utilization Analytics API Router.
+"""Authenticated benefit workflow. Customer identity always comes from the session."""
 
-Provides analytics endpoints for customer benefit utilization, KPI summaries,
-trend calculations, and generic data querying.
-"""
-from typing import Any
+from dataclasses import asdict
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Annotated, Literal
+from uuid import UUID, uuid4
+
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import AwareDatetime, BaseModel, Field
 
-from benefit_iq.api.dependencies.auth import get_current_user
+from benefit_iq.api.dependencies.auth import get_current_admin_user, get_current_user
 from benefit_iq.api.schemas.common import ApiResponse
-from benefit_iq.api.schemas.query import QueryRequest, QueryResponse
+from benefit_iq.domain.entities.benefit_usage import BenefitUsage
+from benefit_iq.domain.entities.transaction import Transaction
 from benefit_iq.domain.entities.user import User
+from benefit_iq.domain.enums.benefit_enums import TransactionChannel, TransactionStatus
 
 router = APIRouter(
-    prefix="/analytics",
-    tags=["Analytics & Utilization"],
-    dependencies=[Depends(get_current_user)],
+    prefix="/analytics", tags=["Benefit analytics"], dependencies=[Depends(get_current_user)]
 )
+Currency = Annotated[str, Query(pattern="^[A-Z]{3}$")]
 
 
-@router.get("/kpi", response_model=ApiResponse[dict[str, Any]])
-async def get_kpi_summary(
-    current_user: User = Depends(get_current_user),
+class AddCardRequest(BaseModel):
+    product_id: UUID
+    last_four: str = Field(pattern=r"^\d{4}$")
+    alias: str = Field(default="My card", max_length=80)
+
+
+class TransactionRequest(BaseModel):
+    external_id: str = Field(min_length=1, max_length=120)
+    card_id: UUID
+    amount: Decimal = Field(gt=0, max_digits=18, decimal_places=4, allow_inf_nan=False)
+    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
+    merchant_name: str = Field(min_length=1, max_length=200)
+    merchant_category_code: str = Field(pattern=r"^\d{4}$")
+    transaction_date: AwareDatetime
+
+
+class UsageRequest(BaseModel):
+    external_id: str = Field(min_length=1, max_length=120)
+    card_id: UUID
+    benefit_id: UUID
+    value: Decimal = Field(ge=0, max_digits=18, decimal_places=4, allow_inf_nan=False)
+    currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
+
+
+async def customer_scope(customer_id: UUID, user: User = Depends(get_current_user)):
+    if customer_id != user.id:
+        raise HTTPException(403, "This customer is outside your account")
+    return user
+
+
+@router.get("/cards")
+@inject
+async def catalog(repo=Depends(Provide["card_product_repository"])):
+    return ApiResponse(success=True, data=[asdict(p) for p in await repo.list_all(0, 100)])
+
+
+@router.get("/benefits")
+@inject
+async def benefits(repo=Depends(Provide["benefit_repository"])):
+    return ApiResponse(success=True, data=[asdict(p) for p in await repo.list_all(0, 100)])
+
+
+@router.get("/me/cards")
+@inject
+async def my_cards(
+    user: User = Depends(get_current_user), repo=Depends(Provide["card_repository"])
 ):
-    """Retrieves top-level Benefit Utilization KPI metrics."""
+    return ApiResponse(success=True, data=[asdict(c) for c in await repo.get_by_customer(user.id)])
+
+
+@router.post("/me/cards", status_code=201)
+@inject
+async def add_card(
+    request: AddCardRequest,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["workflow_service"]),
+):
+    return ApiResponse(
+        success=True,
+        data=asdict(
+            await service.add_card(user.id, request.product_id, request.last_four, request.alias)
+        ),
+    )
+
+
+@router.get("/me/utilization")
+@inject
+async def my_utilization(
+    currency: Currency = "USD",
+    as_of: AwareDatetime | None = None,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["utilization_service"]),
+):
+    return ApiResponse(
+        success=True,
+        data=asdict(
+            await service.calculate_customer_utilization(
+                user.id, period_end=as_of, currency=currency
+            )
+        ),
+    )
+
+
+@router.get("/customers/{customer_id}/utilization", dependencies=[Depends(customer_scope)])
+@inject
+async def customer_utilization(
+    customer_id: UUID, currency: Currency = "USD", service=Depends(Provide["utilization_service"])
+):
+    return ApiResponse(
+        success=True,
+        data=asdict(await service.calculate_customer_utilization(customer_id, currency=currency)),
+    )
+
+
+@router.get("/me/recommendations")
+@inject
+async def recommendations(
+    currency: Currency = "USD",
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["utilization_service"]),
+    scorer=Depends(Provide["ml_prediction_service"]),
+):
+    summary = await service.calculate_customer_utilization(user.id, currency=currency)
+    return ApiResponse(
+        success=True,
+        data=[
+            asdict(p) for p in await scorer.predict_recommendations(user.id, summary.utilizations)
+        ],
+    )
+
+
+@router.get("/me/transactions")
+@inject
+async def transactions(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    user: User = Depends(get_current_user),
+    repo=Depends(Provide["transaction_repository"]),
+):
+    return ApiResponse(
+        success=True,
+        data=[asdict(t) for t in await repo.get_by_customer(user.id, offset=offset, limit=limit)],
+    )
+
+
+@router.post("/me/transactions", status_code=201)
+@inject
+async def ingest(
+    request: TransactionRequest,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["workflow_service"]),
+):
+    now = datetime.now(UTC)
+    when = request.transaction_date.astimezone(UTC).replace(microsecond=0)
+    if when > now:
+        raise HTTPException(422, "Future transactions are not accepted")
+    tx = Transaction(
+        id=uuid4(),
+        external_transaction_id=request.external_id,
+        customer_id=user.id,
+        card_id=request.card_id,
+        merchant_id=None,
+        merchant_name=request.merchant_name,
+        merchant_category_code=request.merchant_category_code,
+        amount=request.amount,
+        currency=request.currency,
+        transaction_date=when,
+        posted_date=when,
+        status=TransactionStatus.POSTED,
+        channel=TransactionChannel.ONLINE,
+        description=None,
+        country=None,
+        city=None,
+        is_recurring=False,
+        source_system="user_import",
+        idempotency_key="",
+        created_at=now,
+        updated_at=now,
+    )
+    return ApiResponse(success=True, data=asdict(await service.ingest(tx)))
+
+
+@router.post("/me/transactions/{transaction_id}/reverse")
+@inject
+async def reverse(
+    transaction_id: UUID,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["workflow_service"]),
+):
+    return ApiResponse(success=True, data=asdict(await service.reverse(user.id, transaction_id)))
+
+
+@router.post("/me/usage", status_code=201)
+@inject
+async def redeem(
+    request: UsageRequest,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["workflow_service"]),
+):
+    now = datetime.now(UTC)
+    usage = BenefitUsage(
+        id=uuid4(),
+        customer_id=user.id,
+        card_id=request.card_id,
+        benefit_id=request.benefit_id,
+        transaction_id=None,
+        usage_date=now,
+        value_used=request.value,
+        currency=request.currency,
+        description="Self-reported benefit use",
+        source_system="self_reported",
+        created_at=now,
+    )
+    return ApiResponse(success=True, data=asdict(await service.redeem(usage, request.external_id)))
+
+
+@router.get("/kpi", dependencies=[Depends(get_current_admin_user)])
+@inject
+async def kpi(currency: Currency = "USD", service=Depends(Provide["portfolio_analytics_service"])):
+    return ApiResponse(success=True, data=await service.get_kpi_summary(currency))
+
+
+@router.get("/me/nudges")
+@inject
+async def get_nudges(
+    user: User = Depends(get_current_user), service=Depends(Provide["nudge_service"])
+):
+    return ApiResponse(
+        success=True, data=[asdict(n) for n in await service.get_customer_nudges(user.id)]
+    )
+
+
+@router.post("/me/nudges")
+@inject
+async def generate_nudges(
+    currency: Currency = "USD",
+    user: User = Depends(get_current_user),
+    utilization=Depends(Provide["utilization_service"]),
+    service=Depends(Provide["nudge_service"]),
+    locks=Depends(Provide["redis"]),
+):
+    async with locks.lock(f"nudges:{user.id}"):
+        summary = await utilization.calculate_customer_utilization(user.id, currency=currency)
+        nudges = await service.generate_nudges_for_customer(user.id, summary.utilizations)
+        return ApiResponse(success=True, data=[asdict(n) for n in nudges])
+
+
+class NudgeAcknowledgement(BaseModel):
+    status: Literal["opened", "dismissed"]
+
+
+@router.post("/me/nudges/{nudge_id}/status")
+@inject
+async def acknowledge(
+    nudge_id: UUID,
+    request: NudgeAcknowledgement,
+    user: User = Depends(get_current_user),
+    service=Depends(Provide["nudge_service"]),
+):
+    from benefit_iq.domain.enums.benefit_enums import NudgeStatus
+
+    return ApiResponse(
+        success=True,
+        data=asdict(await service.acknowledge(user.id, nudge_id, NudgeStatus(request.status))),
+    )
+
+
+class EnrollmentRequest(BaseModel):
+    card_id: UUID
+    benefit_id: UUID
+
+
+@router.post("/me/enrollments")
+@inject
+async def enroll(
+    request: EnrollmentRequest,
+    user: User = Depends(get_current_user),
+    workflow=Depends(Provide["workflow_service"]),
+    benefits=Depends(Provide["benefit_repository"]),
+    enrollments=Depends(Provide["enrollment_repository"]),
+    locks=Depends(Provide["redis"]),
+):
+    card = await workflow.owned_card(user.id, request.card_id)
+    linked = await benefits.get_by_card_product(card.card_product_id)
+    if not any(b.id == request.benefit_id for b in linked):
+        raise HTTPException(404, "Benefit not found on this card")
+    now = datetime.now(UTC)
+    async with locks.lock(f"enrollment:{user.id}:{card.id}:{request.benefit_id}"):
+        if not await enrollments.is_enrolled(user.id, card.id, request.benefit_id, now):
+            await enrollments.enroll(user.id, card.id, request.benefit_id, now)
     return ApiResponse(
         success=True,
         data={
-            "total_claims_ytd": "$1,482,900",
-            "claims_growth": "+12.4%",
-            "approved_claims_pct": "94.8%",
-            "total_savings": "$342,150",
-            "active_members": 1420,
-            "avg_processing_days": 1.8,
-            "loss_ratio_pct": "68.2%",
+            "source": "self_reported",
+            "message": "Enrollment recorded. Confirm enrollment with your issuer.",
         },
     )
 
 
-@router.get("/utilization-trends", response_model=ApiResponse[list[dict[str, Any]]])
-async def get_utilization_trends():
-    """Retrieves monthly utilization trend timeline data."""
-    trends = [
-        {"month": "Jan", "medical": 125000, "dental": 42000, "vision": 18000, "rx": 54000},
-        {"month": "Feb", "medical": 132000, "dental": 39000, "vision": 21000, "rx": 58000},
-        {"month": "Mar", "medical": 148000, "dental": 45000, "vision": 24000, "rx": 62000},
-        {"month": "Apr", "medical": 141000, "dental": 41000, "vision": 19000, "rx": 59000},
-        {"month": "May", "medical": 156000, "dental": 48000, "vision": 26000, "rx": 67000},
-        {"month": "Jun", "medical": 169000, "dental": 52000, "vision": 28000, "rx": 71000},
-        {"month": "Jul", "medical": 162000, "dental": 49000, "vision": 25000, "rx": 68000},
-    ]
-    return ApiResponse(success=True, data=trends)
-
-
-@router.get("/category-breakdown", response_model=ApiResponse[list[dict[str, Any]]])
-async def get_category_breakdown():
-    """Retrieves category breakdown percentages for claims."""
-    breakdown = [
-        {"category": "Inpatient Hospital", "percentage": 38.5, "amount": 570916},
-        {"category": "Outpatient Care", "percentage": 24.2, "amount": 358861},
-        {"category": "Prescription Drugs", "percentage": 18.6, "amount": 275819},
-        {"category": "Dental Services", "percentage": 11.4, "amount": 169050},
-        {"category": "Vision & Wellness", "percentage": 7.3, "amount": 108254},
-    ]
-    return ApiResponse(success=True, data=breakdown)
-
-
-@router.post("/query", response_model=ApiResponse[QueryResponse])
-async def query_analytics(request: QueryRequest):
-    """Executes datatype-aware generic query over benefit utilization records."""
-    mock_records = [
-        {
-            "id": f"CLM-2026-00{i}",
-            "member_name": f"Member {i}",
-            "benefit_type": ["Medical", "Dental", "Vision", "Prescription"][i % 4],
-            "claim_amount": round(150.0 + (i * 37.5), 2),
-            "approved_amount": round((150.0 + (i * 37.5)) * 0.9, 2),
-            "status": ["APPROVED", "APPROVED", "PENDING", "REJECTED"][i % 4],
-            "submitted_date": f"2026-08-0{min(i+1, 9)}",
-        }
-        for i in range(1, 21)
-    ]
-    total = len(mock_records)
-    total_pages = (total + request.page_size - 1) // request.page_size
+@router.get("/me/redemption-predictions")
+@inject
+async def redemption_predictions(
+    currency: Currency = "USD",
+    user: User = Depends(get_current_user),
+    utilization=Depends(Provide["utilization_service"]),
+    model=Depends(Provide["ml_prediction_service"]),
+):
+    summary = await utilization.calculate_customer_utilization(user.id, currency=currency)
     return ApiResponse(
-        success=True,
-        data=QueryResponse(
-            items=mock_records[: request.page_size],
-            total=total,
-            page=request.page,
-            page_size=request.page_size,
-            total_pages=total_pages,
-            aggregations={"total_claimed": 1482900, "total_approved": 1334610},
-        ),
+        success=True, data=await model.predict_redemption(user.id, summary.utilizations)
     )

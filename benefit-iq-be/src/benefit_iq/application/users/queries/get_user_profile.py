@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -12,12 +13,13 @@ from benefit_iq.domain.exceptions.user_exceptions import UserNotFoundException
 @dataclass(frozen=True)
 class GetUserProfileQuery:
     """Class missing docstring."""
+
     user_id: UUID
 
 
 class GetUserProfileHandler:
-
     """Class missing docstring."""
+
     def __init__(self, user_repository: UserRepository) -> None:
         """Function missing docstring."""
         self.user_repository = user_repository

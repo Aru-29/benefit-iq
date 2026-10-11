@@ -10,28 +10,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-password-input',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatFormFieldModule, MatIconModule, MatButtonModule],
-  template: `
-    <mat-form-field appearance="outline" style="width: 100%;">
-      <mat-label>{{ label }}</mat-label>
-      <input 
-        matInput 
-        [type]="hidePassword() ? 'password' : 'text'" 
-        [placeholder]="placeholder"
-        [value]="value()"
-        (input)="onInput($event)"
-        (blur)="onTouched()"
-        [disabled]="disabled()">
-      <button 
-        mat-icon-button 
-        matSuffix 
-        (click)="togglePasswordVisibility($event)" 
-        [attr.aria-label]="'Hide password'" 
-        [attr.aria-pressed]="hidePassword()">
-        <mat-icon>{{hidePassword() ? 'visibility_off' : 'visibility'}}</mat-icon>
-      </button>
-      <mat-hint *ngIf="showStrength && value()">Strength: {{ getStrengthLabel() }}</mat-hint>
-    </mat-form-field>
-  `,
+  templateUrl: './password-input.component.html',
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

@@ -1,4 +1,5 @@
 """External OAuth2 / OIDC Identity Provider Contracts."""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 

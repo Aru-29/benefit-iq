@@ -1,0 +1,15 @@
+<div class="layout-container" style="padding-top: var(--space-xl)">
+  <div class="layout-flex-between" style="margin-bottom: var(--space-lg)">
+    <h1>User Management</h1>
+  </div>
+
+  <div *ngIf="error()" class="alert alert-error">
+    {{ error() }}
+  </div>
+
+  <app-data-table 
+    [data]="users()" 
+    [columns]="columns" 
+    [displayedColumns]="displayedColumns">
+  </app-data-table>
+</div>

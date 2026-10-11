@@ -58,8 +58,6 @@ export const AuthStore = signalStore(
 
     init: () => {
       if (tokenService.hasTokens()) {
-        // We can call loadProfile here if needed
-        // For now, let's just trigger loadProfile in the app component or route guards.
       }
     }
   }))

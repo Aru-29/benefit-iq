@@ -11,7 +11,7 @@ private_key.pem
 public_key.pem
 unseal_keys.json
 root_token.txt
-secrets/
+/secrets/
 
 # Python Virtual Environments & Packages
 .venv/

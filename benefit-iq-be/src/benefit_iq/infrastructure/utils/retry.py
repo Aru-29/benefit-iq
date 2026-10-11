@@ -1,10 +1,13 @@
 """
 Module missing docstring.
 """
+
 import asyncio
 import random
+from collections.abc import Callable
+from typing import Any, TypeVar
+
 import structlog
-from typing import Callable, TypeVar, Any
 
 logger = structlog.get_logger(__name__)
 
@@ -17,7 +20,7 @@ async def with_retry(
     base_delay: float = 1.0,
     max_delay: float = 10.0,
     retryable_exceptions: tuple[type[Exception], ...] = (Exception,),
-    operation_name: str = "operation"
+    operation_name: str = "operation",
 ) -> T:
     """
     Executes an async operation with bounded retries, exponential backoff, and jitter.

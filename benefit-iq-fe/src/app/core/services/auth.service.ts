@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
 import { TokenService } from './token.service';
 
 interface TokenResponse {
@@ -19,7 +19,8 @@ export class AuthService {
 
   refreshToken(): Observable<TokenResponse> {
     const refreshToken = this.tokenService.getRefreshToken();
-    return this.http.post<TokenResponse>(`${this.apiUrl}/refresh`, { refresh_token: refreshToken }).pipe(
+    return this.http.post<{data: TokenResponse}>(`${this.apiUrl}/refresh`, { refresh_token: refreshToken }).pipe(
+      map(response => response.data),
       tap(response => {
         this.tokenService.setTokens(response.access_token, response.refresh_token);
       })
@@ -29,15 +30,12 @@ export class AuthService {
   logout(): void {
     const refreshToken = this.tokenService.getRefreshToken();
     if (refreshToken) {
-      // Best effort logout on backend
       this.http.post(`${this.apiUrl}/logout`, { refresh_token: refreshToken }).subscribe({
         next: () => {},
         error: () => {}
       });
     }
     this.tokenService.clearTokens();
-    // In a real app, you might also want to clear the NgRx store or redirect to login here.
-    // For now we just clear tokens. Store reset will be handled in the store itself or via an event.
   }
 
   getProfile(): Observable<any> {

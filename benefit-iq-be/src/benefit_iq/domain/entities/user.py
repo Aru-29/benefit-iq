@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -11,6 +12,7 @@ from benefit_iq.domain.enums.auth_provider import AuthProvider
 @dataclass
 class User:
     """Class missing docstring."""
+
     id: UUID
     username: str
     first_name: str

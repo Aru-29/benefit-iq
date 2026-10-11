@@ -11,23 +11,7 @@ import { HasRoleDirective } from '../../../shared/directives/has-role.directive'
   selector: 'app-user-list',
   standalone: true,
   imports: [CommonModule, MatButtonModule, MatIconModule, RouterModule, DataTableComponent, HasRoleDirective],
-  template: `
-    <div class="layout-container" style="padding-top: var(--space-xl)">
-      <div class="layout-flex-between" style="margin-bottom: var(--space-lg)">
-        <h1>User Management</h1>
-      </div>
-
-      <div *ngIf="error()" class="alert alert-error">
-        {{ error() }}
-      </div>
-
-      <app-data-table 
-        [data]="users()" 
-        [columns]="columns" 
-        [displayedColumns]="displayedColumns">
-      </app-data-table>
-    </div>
-  `
+  templateUrl: './user-list.component.html'
 })
 export class UserListComponent implements OnInit {
   private readonly adminApi = inject(AdminApiService);

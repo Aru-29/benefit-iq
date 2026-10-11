@@ -1,6 +1,7 @@
 """Dynamic Application Configuration Service with Redis Read-Through Caching and OpenBao Vault Integration."""
+
 # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,line-too-long
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
@@ -65,9 +66,7 @@ class AppConfigService:
         # 3. If secret -> Fetch from OpenBao Vault
         if cfg.is_secret and cfg.secret_path and cfg.secret_key and self.secret_manager:
             try:
-                secret_val = await self.secret_manager.get_secret(
-                    cfg.secret_path, cfg.secret_key
-                )
+                secret_val = await self.secret_manager.get_secret(cfg.secret_path, cfg.secret_key)
                 if secret_val:
                     final_value = secret_val
             except Exception as e:  # pylint: disable=broad-exception-caught
@@ -80,6 +79,7 @@ class AppConfigService:
 
         # 4. Cache resolved valid value in Redis (TTL 3600 seconds)
         if final_value and str(final_value).strip():
+
             async def do_cache_set() -> None:
                 await self.redis.setex(cache_key, 3600, final_value)
 
@@ -101,7 +101,7 @@ class AppConfigService:
         """Creates or updates a configuration key, persisting secrets to OpenBao and caching in Redis."""
         application = app or self.default_app
         environment = env or self.default_env
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         target_secret_path = secret_path
         target_secret_key = secret_key
@@ -178,9 +178,7 @@ class AppConfigService:
         await with_retry(do_cache_update, operation_name="redis_update_config")
         return saved
 
-    async def list_configs(
-        self, app: str | None = None, env: str | None = None
-    ) -> list[AppConfig]:
+    async def list_configs(self, app: str | None = None, env: str | None = None) -> list[AppConfig]:
         """Lists active configuration entries."""
         application = app or self.default_app
         environment = env or self.default_env

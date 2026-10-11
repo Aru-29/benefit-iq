@@ -4,22 +4,27 @@ Initializes the FastAPI application, wires dependency injection containers,
 registers middleware pipelines, configures exception handlers, telemetry,
 and sets up ClickHouse/Redis lifecycle context handlers.
 """
+
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from benefit_iq.api.middleware.correlation import (
     CorrelationIdMiddleware,
 )
 from benefit_iq.api.middleware.exception import (
+    auth_exception_handler,
     generic_exception_handler,
     invalid_role_handler,
     role_conflict_handler,
     role_not_found_handler,
-    auth_exception_handler,
     user_exception_handler,
+)
+from benefit_iq.api.middleware.rate_limiting import (
+    RateLimitingMiddleware,
 )
 from benefit_iq.api.middleware.request_logging import (
     RequestLoggingMiddleware,
@@ -27,8 +32,17 @@ from benefit_iq.api.middleware.request_logging import (
 from benefit_iq.api.middleware.security_headers import (
     SecurityHeadersMiddleware,
 )
-from benefit_iq.api.middleware.rate_limiting import (
-    RateLimitingMiddleware,
+from benefit_iq.api.routers.v1.analytics import (
+    router as analytics_router,
+)
+from benefit_iq.api.routers.v1.auth import (
+    router as auth_router,
+)
+from benefit_iq.api.routers.v1.config import (
+    router as config_router,
+)
+from benefit_iq.api.routers.v1.crypto import (
+    router as crypto_router,
 )
 from benefit_iq.api.routers.v1.health import (
     router as health_router,
@@ -36,40 +50,30 @@ from benefit_iq.api.routers.v1.health import (
 from benefit_iq.api.routers.v1.roles import (
     router as roles_router,
 )
-from benefit_iq.api.routers.v1.auth import (
-    router as auth_router,
-)
-from benefit_iq.api.routers.v1.users import (
-    router as users_router,
-)
-from benefit_iq.api.routers.v1.crypto import (
-    router as crypto_router,
-)
-from benefit_iq.api.routers.v1.config import (
-    router as config_router,
-)
-from benefit_iq.api.routers.v1.analytics import (
-    router as analytics_router,
-)
 from benefit_iq.api.routers.v1.secrets import (
     router as secrets_router,
 )
 from benefit_iq.api.routers.v1.system import (
     router as system_router,
 )
+from benefit_iq.api.routers.v1.users import (
+    router as users_router,
+)
+from benefit_iq.domain.exceptions.auth_exceptions import AuthDomainException
 from benefit_iq.domain.exceptions.role_exceptions import (
     InvalidRoleNameException,
     RoleAlreadyExistsException,
     RoleNotFoundException,
 )
-from benefit_iq.domain.exceptions.auth_exceptions import AuthDomainException
 from benefit_iq.domain.exceptions.user_exceptions import UserDomainException
-
 from benefit_iq.infrastructure.configuration.settings import (
     get_settings,
 )
 from benefit_iq.infrastructure.dependency_injection.container import (
     init_container,
+)
+from benefit_iq.infrastructure.persistence.clickhouse.initializer import (
+    ClickHouseInitializer,
 )
 from benefit_iq.infrastructure.telemetry.logging import (
     configure_logging,
@@ -77,10 +81,6 @@ from benefit_iq.infrastructure.telemetry.logging import (
 from benefit_iq.infrastructure.telemetry.setup import (
     configure_telemetry,
 )
-from benefit_iq.infrastructure.persistence.clickhouse.initializer import (
-    ClickHouseInitializer,
-)
-
 
 logger = structlog.get_logger(__name__)
 
@@ -192,29 +192,24 @@ def create_application() -> FastAPI:
             "benefit_iq.api.routers.v1.users",
             "benefit_iq.api.routers.v1.crypto",
             "benefit_iq.api.routers.v1.config",
+            "benefit_iq.api.routers.v1.analytics",
             "benefit_iq.api.dependencies.services",
             "benefit_iq.api.dependencies.auth",
         ]
     )
 
-    app.add_middleware(
-        SecurityHeadersMiddleware
-    )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.add_middleware(
         RateLimitingMiddleware,
         redis_cache=container.redis(),
         max_requests=settings.security.rate_limit_requests,
-        window_seconds=60,
+        window_seconds=settings.security.rate_limit_window_seconds,
     )
 
-    app.add_middleware(
-        CorrelationIdMiddleware
-    )
+    app.add_middleware(CorrelationIdMiddleware)
 
-    app.add_middleware(
-        RequestLoggingMiddleware
-    )
+    app.add_middleware(RequestLoggingMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
@@ -254,10 +249,7 @@ def create_application() -> FastAPI:
         generic_exception_handler,
     )
 
-    api_prefix = (
-        f"{settings.api_prefix}"
-        f"/{settings.api_version}"
-    )
+    api_prefix = f"{settings.api_prefix}/{settings.api_version}"
 
     app.include_router(
         health_router,
@@ -304,6 +296,16 @@ def create_application() -> FastAPI:
         prefix=api_prefix,
     )
 
+    @app.exception_handler(ValueError)
+    async def validation_error(request: Request, exc: ValueError):
+        return JSONResponse(status_code=422, content={"success": False, "detail": str(exc)})
+
+    @app.exception_handler(LookupError)
+    async def missing_resource(request: Request, exc: LookupError):
+        return JSONResponse(
+            status_code=404, content={"success": False, "detail": "Resource not found"}
+        )
+
     configure_telemetry(
         app,
         settings,
@@ -313,16 +315,13 @@ def create_application() -> FastAPI:
     async def lifespan(
         _application: FastAPI,
     ):
-
         """Async function missing docstring."""
         logger.info(
             "application_starting",
             environment=settings.app_env,
         )
 
-        database = (
-            container.clickhouse()
-        )
+        database = container.clickhouse()
 
         database.connect()
 
@@ -331,41 +330,24 @@ def create_application() -> FastAPI:
             await initializer.initialize()
         except Exception:  # pylint: disable=broad-exception-caught
             logger.exception("clickhouse_initialization_failed")
+            raise
 
         redis = container.redis()
 
         try:
             await redis.connect()
         except Exception:  # pylint: disable=broad-exception-caught
-            logger.exception(
-                "redis_connection_failed"
-            )
-
-        # Infrastructure Health & Readiness Check on App Startup
-        try:
-            from benefit_iq.infrastructure.health.infrastructure_health_checker import InfrastructureHealthChecker
-            health_checker = InfrastructureHealthChecker(
-                clickhouse=database,
-                redis_client=redis,
-                openbao_manager=container.secret_manager(),
-            )
-            await health_checker.check_all()
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.warning("startup_infrastructure_health_probe_warning", error=str(e))
+            logger.exception("redis_connection_failed")
 
         yield
 
-        logger.info(
-            "application_shutting_down"
-        )
+        logger.info("application_shutting_down")
 
         database.close()
 
         await redis.close()
 
-        logger.info(
-            "application_stopped"
-        )
+        logger.info("application_stopped")
 
     app.router.lifespan_context = lifespan
 

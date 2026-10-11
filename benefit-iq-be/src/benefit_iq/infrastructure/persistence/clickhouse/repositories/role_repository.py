@@ -1,15 +1,15 @@
 """
 Role repository implementation for ClickHouse.
 """
+
 from uuid import UUID
 
 import structlog
 
-from benefit_iq.domain.entities.role import Role
 from benefit_iq.application.contracts.repositories.role_repository import (
     RoleRepository,
 )
-
+from benefit_iq.domain.entities.role import Role
 
 logger = structlog.get_logger(__name__)
 
@@ -32,14 +32,16 @@ class ClickHouseRoleRepository(RoleRepository):
 
         self.database.client.insert(
             "roles",
-            [[
-                role.id,
-                role.name,
-                role.description,
-                role.is_active,
-                role.created_at,
-                role.updated_at,
-            ]],
+            [
+                [
+                    role.id,
+                    role.name,
+                    role.description,
+                    role.is_active,
+                    role.created_at,
+                    role.updated_at,
+                ]
+            ],
             column_names=[
                 "id",
                 "name",
@@ -80,9 +82,7 @@ class ClickHouseRoleRepository(RoleRepository):
         if not result.result_rows:
             return None
 
-        return self._to_domain(
-            result.result_rows[0]
-        )
+        return self._to_domain(result.result_rows[0])
 
     async def get_by_name(
         self,
@@ -112,9 +112,7 @@ class ClickHouseRoleRepository(RoleRepository):
         if not result.result_rows:
             return None
 
-        return self._to_domain(
-            result.result_rows[0]
-        )
+        return self._to_domain(result.result_rows[0])
 
     async def list(
         self,
@@ -144,10 +142,7 @@ class ClickHouseRoleRepository(RoleRepository):
             },
         )
 
-        return [
-            self._to_domain(row)
-            for row in result.result_rows
-        ]
+        return [self._to_domain(row) for row in result.result_rows]
 
     async def update(
         self,
@@ -156,14 +151,16 @@ class ClickHouseRoleRepository(RoleRepository):
 
         self.database.client.insert(
             "roles",
-            [[
-                role.id,
-                role.name,
-                role.description,
-                role.is_active,
-                role.created_at,
-                role.updated_at,
-            ]],
+            [
+                [
+                    role.id,
+                    role.name,
+                    role.description,
+                    role.is_active,
+                    role.created_at,
+                    role.updated_at,
+                ]
+            ],
             column_names=[
                 "id",
                 "name",
@@ -183,9 +180,7 @@ class ClickHouseRoleRepository(RoleRepository):
 
         # Intentionally not implemented as physical deletion.
         # BenefitIQ should prefer deactivation/versioning.
-        raise NotImplementedError(
-            "Use deactivate instead of physical delete."
-        )
+        raise NotImplementedError("Use deactivate instead of physical delete.")
 
     @staticmethod
     def _to_domain(

@@ -1,9 +1,10 @@
 """Benefit IQ Application Entrypoint."""
+
 import uvicorn
+
 from benefit_iq.bootstrap import (
     create_application,
 )
-
 
 app = create_application()
 

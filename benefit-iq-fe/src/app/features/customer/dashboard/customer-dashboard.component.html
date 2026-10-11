@@ -1,0 +1,156 @@
+<main>
+  <header>
+    <div>
+      <span class="eyebrow">YOUR CARD BENEFITS, EXPLAINED</span>
+      <h1>Make more of what you own.</h1>
+      <p>Track your credits, visits and coverage in one place.</p>
+    </div>
+    <label>Currency
+      <select [(ngModel)]="currency" (change)="load()">
+        <option>USD</option>
+        <option>INR</option>
+        <option>EUR</option>
+      </select>
+    </label>
+  </header>
+
+  <p class="notice">
+    Demo Explorer uses synthetic terms. Recorded usage is self-reported.
+    Coverage and visit allowances are excluded from cash totals.
+  </p>
+
+  <p *ngIf="error()" role="alert" class="error">
+    {{error()}} <button (click)="load()">Retry</button>
+  </p>
+
+  <p *ngIf="loading()" role="status">Loading your benefits...</p>
+
+  <ng-container *ngIf="summary() as s">
+    <section class="metrics" aria-label="Current benefit cycles">
+      <article class="featured">
+        <small>Cash value still available</small>
+        <strong>{{s.total_unused_value | currency:currency}}</strong>
+        <span>Across current benefit cycles</span>
+      </article>
+      <article>
+        <small>Recorded cash use</small>
+        <strong>{{s.total_used_value | currency:currency}}</strong>
+        <span>{{s.overall_utilization_percentage}}% of eligible credits</span>
+      </article>
+      <article>
+        <small>Eligible cash allowance</small>
+        <strong>{{s.total_entitled_value | currency:currency}}</strong>
+        <span>Visits and coverage shown separately</span>
+      </article>
+    </section>
+
+    <section class="split">
+      <article class="panel">
+        <h2>Your wallet</h2>
+        <p *ngIf="!cards().length">Add your first card to discover its benefits.</p>
+        <div class="wallet" *ngFor="let card of cards()">
+          <b>{{card.card_alias}}</b>
+          <span>Ending {{card.card_last_four}}</span>
+        </div>
+        <form (ngSubmit)="addCard()" #cardForm="ngForm">
+          <label>Card product
+            <select name="product" [(ngModel)]="productId" required>
+              <option value="">Choose a product</option>
+              <option *ngFor="let p of products()" [value]="p.id">
+                {{p.name}} / {{p.issuer_name}}
+              </option>
+            </select>
+          </label>
+          <label>Last four digits
+            <input name="lastFour" [(ngModel)]="lastFour"
+                   pattern="[0-9]{4}" maxlength="4" required inputmode="numeric">
+          </label>
+          <button [disabled]="cardForm.invalid || busy()">Add to wallet</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <h2>Next useful actions</h2>
+        <p *ngIf="!recommendations().length">No unused eligible benefits in this currency yet.</p>
+        <div class="recommendation" *ngFor="let r of recommendations()">{{r.explanation}}</div>
+        <small>Priorities use explainable rules. Scores are not redemption probabilities.</small>
+      </article>
+    </section>
+
+    <section>
+      <h2>Benefit details</h2>
+      <p *ngIf="!s.utilizations.length">
+        No benefits for this currency. Add a card or choose another currency.
+      </p>
+      <div class="benefit-grid">
+        <article class="panel" *ngFor="let b of s.utilizations">
+          <span class="badge">{{b.benefit_category.replaceAll('_',' ')}}</span>
+          <h3>{{b.benefit_name}}</h3>
+          <p>{{b.status.replaceAll('_',' ')}} / Rule version {{b.rule_version}}</p>
+
+          <ng-container *ngIf="b.value_type === 'monetary'; else allowance">
+            <strong>{{b.remaining_value | currency:b.currency}} remaining</strong>
+            <progress [value]="b.utilization_percentage" max="100"
+                      aria-label="Benefit utilization"></progress>
+          </ng-container>
+          <ng-template #allowance>
+            <strong>
+              {{b.usage_count}} uses recorded
+              <span *ngIf="b.usage_limit !== null"> / {{b.usage_limit}} allowed</span>
+            </strong>
+            <p>Cash value not assigned</p>
+          </ng-template>
+
+          <p>{{b.eligibility_reason}}</p>
+          <small>Cycle ends {{b.expiry_date | date:'mediumDate'}}</small>
+
+          <form (ngSubmit)="recordUse(b)"
+                *ngIf="b.status !== 'not_eligible' && b.status !== 'fully_used'">
+            <label *ngIf="b.value_type === 'monetary'">Amount used
+              <input type="number" min="0.01" step="0.01"
+                     [name]="b.card_id+b.benefit_id"
+                     [(ngModel)]="amounts[b.card_id+b.benefit_id]">
+            </label>
+            <button [disabled]="busy()">
+              Record {{b.value_type === 'monetary' ? 'credit use' : 'a use'}}
+            </button>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Record a posted transaction</h2>
+      <p>
+        Spending qualifies you for benefits; it does not automatically prove
+        a credit or visit was redeemed.
+      </p>
+      <form class="transaction-form" (ngSubmit)="addTransaction()" #txForm="ngForm">
+        <label>Card
+          <select name="txCard" [(ngModel)]="txCard" required>
+            <option *ngFor="let c of cards()" [value]="c.id">
+              {{c.card_alias}} {{c.card_last_four}}
+            </option>
+          </select>
+        </label>
+        <label>Statement reference
+          <input name="reference" [(ngModel)]="reference" required maxlength="120">
+        </label>
+        <label>Merchant
+          <input name="merchant" [(ngModel)]="merchant" required maxlength="200">
+        </label>
+        <label>Merchant category code
+          <input name="mcc" [(ngModel)]="mcc" required pattern="[0-9]{4}" maxlength="4">
+        </label>
+        <label>Amount ({{currency}})
+          <input name="txAmount" type="number" [(ngModel)]="txAmount"
+                 required min="0.01" step="0.01">
+        </label>
+        <label>Date and time
+          <input name="txDate" type="datetime-local" [(ngModel)]="txDate" required>
+        </label>
+        <button [disabled]="txForm.invalid || busy()">Save transaction</button>
+      </form>
+    </section>
+  </ng-container>
+</main>

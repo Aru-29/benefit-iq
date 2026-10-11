@@ -3,7 +3,10 @@
 Performs explicit startup readiness and connectivity checks across ClickHouse,
 Redis, OpenBao Vault, and Kafka, logging detailed operational status on app start.
 """
+
 import socket
+from typing import Any
+
 import httpx
 import structlog
 from redis.asyncio import Redis
@@ -56,7 +59,10 @@ class InfrastructureHealthChecker:
         try:
             res = await self.clickhouse.query_async("SELECT 1")
             is_ok = bool(res and res.result_rows)
-            return {"status": "HEALTHY" if is_ok else "UNHEALTHY", "details": "ClickHouse ping successful"}
+            return {
+                "status": "HEALTHY" if is_ok else "UNHEALTHY",
+                "details": "ClickHouse ping successful",
+            }
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("clickhouse_health_check_failed", error=str(e))
             return {"status": "UNHEALTHY", "error": str(e)}
@@ -68,7 +74,10 @@ class InfrastructureHealthChecker:
             if client is not None and hasattr(client, "ping"):
                 pong = await client.ping()
                 is_ok = bool(pong)
-                return {"status": "HEALTHY" if is_ok else "UNHEALTHY", "details": "Redis ping successful"}
+                return {
+                    "status": "HEALTHY" if is_ok else "UNHEALTHY",
+                    "details": "Redis ping successful",
+                }
             return {"status": "UNHEALTHY", "error": "Redis client not connected"}
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("redis_health_check_failed", error=str(e))
@@ -96,10 +105,12 @@ class InfrastructureHealthChecker:
             sock.settimeout(2.0)
             result = sock.connect_ex((self.kafka_host, self.kafka_port))
             sock.close()
-            is_ok = (result == 0)
+            is_ok = result == 0
             return {
                 "status": "HEALTHY" if is_ok else "UNHEALTHY",
-                "details": f"Kafka socket connect {self.kafka_host}:{self.kafka_port} success" if is_ok else "Socket connection refused",
+                "details": f"Kafka socket connect {self.kafka_host}:{self.kafka_port} success"
+                if is_ok
+                else "Socket connection refused",
             }
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("kafka_health_check_failed", error=str(e))

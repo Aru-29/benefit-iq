@@ -1,6 +1,8 @@
 """
 Module missing docstring.
 """
+
+
 class RoleDomainException(Exception):
     """Base exception for role domain errors."""
 

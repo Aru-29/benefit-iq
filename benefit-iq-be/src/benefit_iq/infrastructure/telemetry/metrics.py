@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from opentelemetry import metrics
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
     OTLPMetricExporter,
@@ -17,27 +18,17 @@ from benefit_iq.infrastructure.configuration.settings import (
 def configure_metrics(
     settings: Settings,
 ) -> None:
-
     """Function missing docstring."""
     resource = Resource.create(
         {
-            "service.name": (
-                settings.telemetry.service_name
-            ),
-            "service.version": (
-                settings.app_version
-            ),
-            "deployment.environment": (
-                settings.app_env
-            ),
+            "service.name": (settings.telemetry.service_name),
+            "service.version": (settings.app_version),
+            "deployment.environment": (settings.app_env),
         }
     )
 
     exporter = OTLPMetricExporter(
-        endpoint=(
-            settings.telemetry
-            .exporter_otlp_endpoint
-        ),
+        endpoint=(settings.telemetry.exporter_otlp_endpoint),
         insecure=True,
     )
 

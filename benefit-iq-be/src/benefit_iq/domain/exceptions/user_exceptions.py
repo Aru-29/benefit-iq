@@ -1,6 +1,8 @@
 """
 Module missing docstring.
 """
+
+
 class UserDomainException(Exception):
     """Base exception for user domain errors."""
 

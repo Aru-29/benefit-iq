@@ -3,8 +3,10 @@
 Defines schemas for datatype-aware filtering, pagination, sorting, grouping,
 and aggregation across backend query repositories.
 """
+
 from enum import Enum
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -42,7 +44,7 @@ class FilterGroup(BaseModel):
 
     logic: str = "AND"  # "AND" or "OR"
     filters: list[FilterCondition] = Field(default_factory=list)
-    groups: list["FilterGroup"] = Field(default_factory=list)
+    groups: list[FilterGroup] = Field(default_factory=list)
 
 
 FilterGroup.model_rebuild()

@@ -1,22 +1,26 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from benefit_iq.application.contracts.auth.token_service import TokenService, TokenPair
-from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
+import structlog
+
 from benefit_iq.application.contracts.auth.identity_provider import ExternalIdentityProvider
-from benefit_iq.application.contracts.repositories.user_repository import UserRepository
+from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
+from benefit_iq.application.contracts.auth.token_service import TokenPair, TokenService
 from benefit_iq.application.contracts.repositories.role_repository import RoleRepository
+from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.entities.user import User
 from benefit_iq.domain.enums.auth_provider import AuthProvider
 from benefit_iq.domain.enums.system_role import SystemRole
-from benefit_iq.domain.exceptions.user_exceptions import InvalidCredentialsException, UserDomainException
 from benefit_iq.domain.exceptions.role_exceptions import RoleNotFoundException
-
+from benefit_iq.domain.exceptions.user_exceptions import (
+    InvalidCredentialsException,
+    UserDomainException,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -53,9 +57,7 @@ class OAuthLoginHandler:
     async def handle(self, command: OAuthLoginCommand) -> TokenPair:
         """Validates OAuth provider token or code and issues Benefit IQ JWT token pair."""
         if command.provider_name not in self.identity_providers:
-            raise UserDomainException(
-                f"Unsupported identity provider: {command.provider_name}"
-            )
+            raise UserDomainException(f"Unsupported identity provider: {command.provider_name}")
 
         provider = self.identity_providers[command.provider_name]
         try:
@@ -69,11 +71,12 @@ class OAuthLoginHandler:
             raise
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("oauth_exchange_failed", provider=command.provider_name, error=str(e))
-            raise UserDomainException("OAuth authorization failed. Please try signing in again.") from e
+            raise UserDomainException(
+                "OAuth authorization failed. Please try signing in again."
+            ) from e
 
         user = await self.user_repository.get_by_external_id(
-            provider=command.provider_name,
-            external_id=profile.external_id
+            provider=command.provider_name, external_id=profile.external_id
         )
 
         now = datetime.now(UTC)
@@ -105,7 +108,7 @@ class OAuthLoginHandler:
                     middle_name=None,
                     last_name=profile.last_name,
                     email=profile.email,
-                    password_hash=None, # No local password
+                    password_hash=None,  # No local password
                     role_id=customer_role.id,
                     authentication_provider=AuthProvider(command.provider_name),
                     external_provider_id=profile.external_id,
@@ -125,9 +128,7 @@ class OAuthLoginHandler:
 
         session_id = str(uuid4())
         token_pair = self.token_service.generate_token_pair(
-            user_id=user.id,
-            role_id=user.role_id,
-            session_id=session_id
+            user_id=user.id, role_id=user.role_id, session_id=session_id
         )
 
         refresh_payload = self.token_service.decode_token(token_pair.refresh_token)
@@ -137,7 +138,7 @@ class OAuthLoginHandler:
             jti=refresh_payload.jti,
             user_id=str(user.id),
             session_id=session_id,
-            expires_in=expires_in
+            expires_in=expires_in,
         )
 
         logger.info(

@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from datetime import datetime
 from uuid import UUID
 
@@ -9,9 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RoleResponse(BaseModel):
     """Class missing docstring."""
-    model_config = ConfigDict(
-        from_attributes=True
-    )
+
+    model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     name: str
@@ -23,9 +23,8 @@ class RoleResponse(BaseModel):
 
 class CreateRoleRequest(BaseModel):
     """Class missing docstring."""
-    model_config = ConfigDict(
-        str_strip_whitespace=True
-    )
+
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(
         min_length=1,
@@ -40,9 +39,8 @@ class CreateRoleRequest(BaseModel):
 
 class UpdateRoleRequest(BaseModel):
     """Class missing docstring."""
-    model_config = ConfigDict(
-        str_strip_whitespace=True
-    )
+
+    model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(
         min_length=1,

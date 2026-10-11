@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -9,6 +10,7 @@ from uuid import UUID
 @dataclass
 class Role:
     """Class missing docstring."""
+
     id: UUID
     name: str
     description: str | None

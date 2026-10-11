@@ -3,26 +3,27 @@
 Provides endpoints for authenticated user profile retrieval, account settings updates,
 and administrative user management (listing, fetching, updating, and deleting users).
 """
+
 from uuid import UUID
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from benefit_iq.api.dependencies.auth import get_current_user, get_current_admin_user
+from benefit_iq.api.dependencies.auth import get_current_admin_user, get_current_user
 from benefit_iq.api.schemas.common import ApiResponse
 from benefit_iq.api.schemas.lookup import GenericLookupResponse, LookupItem
 from benefit_iq.api.schemas.query import QueryRequest, QueryResponse
 from benefit_iq.api.schemas.users import (
-    UserProfileResponse,
     UpdateProfileRequest,
+    UserProfileResponse,
 )
 from benefit_iq.application.users.commands.update_profile import (
     UpdateProfileCommand,
     UpdateProfileHandler,
 )
 from benefit_iq.application.users.queries.get_user_profile import (
-    GetUserProfileQuery,
     GetUserProfileHandler,
+    GetUserProfileQuery,
 )
 from benefit_iq.domain.entities.user import User
 
@@ -125,7 +126,11 @@ async def lookup_users(
     items = []
     for u in users:
         full_name = f"{u.first_name} {u.last_name}".strip()
-        if search and search.lower() not in full_name.lower() and search.lower() not in u.email.lower():
+        if (
+            search
+            and search.lower() not in full_name.lower()
+            and search.lower() not in u.email.lower()
+        ):
             continue
         items.append(
             LookupItem(

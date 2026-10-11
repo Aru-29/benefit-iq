@@ -3,6 +3,7 @@
 Applies enterprise-grade HTTP security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
 to protect against common web vulnerabilities (XSS, Clickjacking, MIME-sniffing).
 """
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response

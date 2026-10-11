@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from redis.asyncio import Redis
 
 from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
@@ -9,6 +10,7 @@ from benefit_iq.infrastructure.utils.retry import with_retry
 
 class RedisRefreshTokenStore(RefreshTokenStore):
     """Class missing docstring."""
+
     def __init__(self, redis_client: Redis) -> None:
         """Function missing docstring."""
         self.redis = redis_client
@@ -23,6 +25,7 @@ class RedisRefreshTokenStore(RefreshTokenStore):
 
     async def store_token(self, jti: str, user_id: str, session_id: str, expires_in: int) -> None:
         """Async function missing docstring."""
+
         async def do_store() -> None:
             # We track the session to easily revoke all tokens for a session
             """Async function missing docstring."""
@@ -36,6 +39,7 @@ class RedisRefreshTokenStore(RefreshTokenStore):
 
     async def is_valid(self, jti: str) -> bool:
         """Async function missing docstring."""
+
         async def do_check() -> bool:
             """Async function missing docstring."""
             return await self.redis.exists(self._jti_key(jti)) == 1
@@ -44,6 +48,7 @@ class RedisRefreshTokenStore(RefreshTokenStore):
 
     async def revoke_token(self, jti: str) -> None:
         """Async function missing docstring."""
+
         async def do_revoke() -> None:
             """Async function missing docstring."""
             await self.redis.delete(self._jti_key(jti))
@@ -52,13 +57,17 @@ class RedisRefreshTokenStore(RefreshTokenStore):
 
     async def revoke_session(self, session_id: str) -> None:
         """Async function missing docstring."""
+
         async def do_revoke_session() -> None:
             """Async function missing docstring."""
             session_key = self._session_key(session_id)
             jtis = await self.redis.smembers(session_key)
             if jtis:
                 # Delete all tokens in the session
-                keys_to_delete = [self._jti_key(jti.decode("utf-8")) for jti in jtis]
+                keys_to_delete = [
+                    self._jti_key(jti.decode("utf-8") if isinstance(jti, bytes) else jti)
+                    for jti in jtis
+                ]
                 await self.redis.delete(*keys_to_delete)
             # Delete the session itself
             await self.redis.delete(session_key)
@@ -67,8 +76,12 @@ class RedisRefreshTokenStore(RefreshTokenStore):
 
     async def is_session_valid(self, session_id: str) -> bool:
         """Async function missing docstring."""
+
         async def do_check() -> bool:
             """Async function missing docstring."""
             return await self.redis.exists(self._session_key(session_id)) == 1
 
         return await with_retry(do_check, operation_name="redis_is_valid_session")
+
+    async def consume_token(self, jti: str) -> bool:
+        return await self.redis.getdel(self._jti_key(jti)) is not None

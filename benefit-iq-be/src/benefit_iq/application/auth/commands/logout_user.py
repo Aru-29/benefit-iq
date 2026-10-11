@@ -1,13 +1,13 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
 
-from benefit_iq.application.contracts.auth.token_service import TokenService
-from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
-from benefit_iq.domain.exceptions.auth_exceptions import TokenInvalidException
+import structlog
 
+from benefit_iq.application.contracts.auth.refresh_token_store import RefreshTokenStore
+from benefit_iq.application.contracts.auth.token_service import TokenService
 
 logger = structlog.get_logger(__name__)
 
@@ -15,12 +15,13 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class LogoutUserCommand:
     """Class missing docstring."""
+
     refresh_token: str
 
 
 class LogoutUserHandler:
-
     """Class missing docstring."""
+
     def __init__(
         self,
         token_service: TokenService,

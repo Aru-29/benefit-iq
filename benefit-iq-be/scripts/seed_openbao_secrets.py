@@ -3,6 +3,7 @@
 Usage:
     python scripts/seed_openbao_secrets.py
 """
+
 import asyncio
 import os
 import sys
@@ -24,8 +25,14 @@ async def seed_secrets():
         ("secret/data/benefit-iq-be/jwt_secret_key", {"secret_value": "change-me-in-production"}),
         ("secret/data/benefit-iq-be/smtp_password", {"secret_value": "smtp_secret_pass"}),
         ("secret/data/benefit-iq-be/init_admin_password", {"secret_value": "Admin@123!"}),
-        ("secret/data/benefit-iq-be/google_client_secret", {"secret_value": "google_client_secret_placeholder"}),
-        ("secret/data/benefit-iq-be/microsoft_client_secret", {"secret_value": "microsoft_client_secret_placeholder"}),
+        (
+            "secret/data/benefit-iq-be/google_client_secret",
+            {"secret_value": "google_client_secret_placeholder"},
+        ),
+        (
+            "secret/data/benefit-iq-be/microsoft_client_secret",
+            {"secret_value": "microsoft_client_secret_placeholder"},
+        ),
         ("secret/data/benefit-iq-be/database_credentials", {"db_pass": "default_pass"}),
         ("secret/data/benefit-iq-be/redis_auth_token", {"token": "redis_auth_token_placeholder"}),
     ]

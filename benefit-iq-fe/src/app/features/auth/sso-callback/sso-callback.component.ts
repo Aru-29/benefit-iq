@@ -9,18 +9,7 @@ import { AuthStore } from '../../../core/state/auth.store';
   selector: 'app-sso-callback',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="layout-fullscreen-center">
-      <div class="card" style="text-align: center;">
-        <h2 style="margin-bottom: var(--space-md)">Authenticating...</h2>
-        <div class="spinner"></div>
-        <p style="margin-top: var(--space-md)">Please wait while we verify your sign-in.</p>
-        <div *ngIf="error()" class="alert alert-error" style="margin-top: var(--space-md)">
-          {{ error() }}
-        </div>
-      </div>
-    </div>
-  `
+  templateUrl: './sso-callback.component.html'
 })
 export class SsoCallbackComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

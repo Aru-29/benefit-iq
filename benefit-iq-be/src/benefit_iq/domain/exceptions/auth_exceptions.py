@@ -1,6 +1,8 @@
 """
 Module missing docstring.
 """
+
+
 class AuthDomainException(Exception):
     """Base exception for authentication domain errors."""
 

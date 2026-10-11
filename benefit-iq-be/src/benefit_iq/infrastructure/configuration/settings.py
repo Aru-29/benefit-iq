@@ -1,15 +1,17 @@
 """
 Module missing docstring.
 """
+
 from functools import lru_cache
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ClickHouseSettings(BaseSettings):
     """Class missing docstring."""
+
     host: str = "localhost"
     port: int = 8123
     username: str = "default"
@@ -27,6 +29,7 @@ class ClickHouseSettings(BaseSettings):
 
 class RedisSettings(BaseSettings):
     """Class missing docstring."""
+
     host: str = "localhost"
     port: int = 6379
     password: str = ""
@@ -41,6 +44,7 @@ class RedisSettings(BaseSettings):
 
 class TelemetrySettings(BaseSettings):
     """Class missing docstring."""
+
     enabled: bool = True
     service_name: str = "benefitiq-api"
     exporter_otlp_endpoint: str = "http://localhost:4317"
@@ -53,6 +57,7 @@ class TelemetrySettings(BaseSettings):
 
 class JWTSettings(BaseSettings):
     """Class missing docstring."""
+
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
@@ -66,6 +71,7 @@ class JWTSettings(BaseSettings):
 
 class OAuthSettings(BaseSettings):
     """Class missing docstring."""
+
     google_client_id: str = ""
     google_client_secret: str = ""
     microsoft_client_id: str = ""
@@ -80,6 +86,7 @@ class OAuthSettings(BaseSettings):
 
 class EmailSettings(BaseSettings):
     """Class missing docstring."""
+
     enabled: bool = True
     host: str = "localhost"
     port: int = 1025
@@ -96,6 +103,7 @@ class EmailSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """Class missing docstring."""
+
     rate_limit_requests: int = 100
     rate_limit_window_seconds: int = 60
     encryption_private_key_path: str = ""
@@ -106,8 +114,21 @@ class SecuritySettings(BaseSettings):
     )
 
 
+class OpenBaoSettings(BaseSettings):
+    """Connection settings for the optional Vault-compatible secret store."""
+
+    url: str = "http://localhost:8200"
+    token: str = ""
+
+    model_config = SettingsConfigDict(
+        env_prefix="OPENBAO_",
+        extra="ignore",
+    )
+
+
 class InitializationSettings(BaseSettings):
     """Class missing docstring."""
+
     admin_email: str = "admin@benefitiq.com"
     admin_password: str = "Admin@123!"
 
@@ -118,10 +139,14 @@ class InitializationSettings(BaseSettings):
 
 
 class Settings(BaseSettings):
-
     """Class missing docstring."""
+
+    ml_model_directory: str = ""
     app_name: str = "BenefitIQ"
-    app_env: str = "development"
+    app_env: str = Field(
+        default="development",
+        validation_alias=AliasChoices("APP_ENV", "ENVIRONMENT"),
+    )
     app_version: str = "0.1.0"
     debug: bool = False
 
@@ -144,41 +169,47 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             if v.startswith("["):
                 import json
+
                 return json.loads(v)
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    clickhouse: ClickHouseSettings = Field(
-        default_factory=ClickHouseSettings
-    )
+    @model_validator(mode="after")
+    def production_secrets(self):
+        if self.app_env.lower() == "production":
+            if len(self.jwt.secret_key) < 32 or self.jwt.secret_key == "change-me-in-production":
+                raise ValueError(
+                    "Production requires an explicit JWT signing secret of at least 32 characters"
+                )
+            if not self.clickhouse.password or not self.redis.password:
+                raise ValueError("Production requires database and Redis credentials")
+            if not self.openbao.token:
+                raise ValueError("Production requires an OpenBao token")
+            if not self.security.encryption_private_key_path:
+                raise ValueError("Production requires SECURITY_ENCRYPTION_PRIVATE_KEY_PATH")
+            if self.init.admin_password == "Admin@123!" or len(self.init.admin_password) < 12:
+                raise ValueError("Production requires a strong INIT_ADMIN_PASSWORD")
+            if self.debug:
+                raise ValueError("Debug must be disabled in production")
+        return self
 
-    redis: RedisSettings = Field(
-        default_factory=RedisSettings
-    )
+    clickhouse: ClickHouseSettings = Field(default_factory=ClickHouseSettings)
 
-    telemetry: TelemetrySettings = Field(
-        default_factory=TelemetrySettings
-    )
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
-    jwt: JWTSettings = Field(
-        default_factory=JWTSettings
-    )
+    telemetry: TelemetrySettings = Field(default_factory=TelemetrySettings)
 
-    oauth: OAuthSettings = Field(
-        default_factory=OAuthSettings
-    )
+    jwt: JWTSettings = Field(default_factory=JWTSettings)
 
-    email: EmailSettings = Field(
-        default_factory=EmailSettings
-    )
+    oauth: OAuthSettings = Field(default_factory=OAuthSettings)
 
-    security: SecuritySettings = Field(
-        default_factory=SecuritySettings
-    )
+    email: EmailSettings = Field(default_factory=EmailSettings)
 
-    init: InitializationSettings = Field(
-        default_factory=InitializationSettings
-    )
+    security: SecuritySettings = Field(default_factory=SecuritySettings)
+
+    openbao: OpenBaoSettings = Field(default_factory=OpenBaoSettings)
+
+    init: InitializationSettings = Field(default_factory=InitializationSettings)
 
     model_config = SettingsConfigDict(
         env_file=".env",

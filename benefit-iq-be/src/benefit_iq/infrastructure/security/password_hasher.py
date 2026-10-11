@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from argon2 import PasswordHasher as Argon2Hasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -9,6 +10,7 @@ from benefit_iq.application.contracts.auth.password_hasher import PasswordHasher
 
 class Argon2PasswordHasher(PasswordHasher):
     """Class missing docstring."""
+
     def __init__(self) -> None:
         """Function missing docstring."""
         self.ph = Argon2Hasher()

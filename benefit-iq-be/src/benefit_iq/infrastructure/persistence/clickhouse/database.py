@@ -1,8 +1,9 @@
 """
 ClickHouse database connection and query execution utilities.
 """
-from typing import Any
+
 import asyncio
+from typing import Any
 
 import clickhouse_connect
 from clickhouse_connect.driver.exceptions import ClickHouseError
@@ -33,24 +34,21 @@ class ClickHouseDatabase:
 
         self._client = clickhouse_connect.get_client(
             host=self._settings.host,
+            autogenerate_session_id=False,
             port=self._settings.port,
             username=self._settings.username,
             password=self._settings.password,
             database=self._settings.database,
             secure=self._settings.secure,
             connect_timeout=self._settings.connect_timeout,
-            send_receive_timeout=(
-                self._settings.send_receive_timeout
-            ),
+            send_receive_timeout=(self._settings.send_receive_timeout),
         )
 
     @property
     def client(self) -> Any:
         """Return the active ClickHouse client instance."""
         if self._client is None:
-            raise RuntimeError(
-                "ClickHouse client is not initialized."
-            )
+            raise RuntimeError("ClickHouse client is not initialized.")
 
         return self._client
 
@@ -68,14 +66,13 @@ class ClickHouseDatabase:
 
         async def do_execute() -> None:
             await loop.run_in_executor(
-                None,
-                lambda: self.client.command(query, parameters=parameters)
+                None, lambda: self.client.command(query, parameters=parameters)
             )
 
         await with_retry(
             operation=do_execute,
             retryable_exceptions=(ClickHouseError,),
-            operation_name="clickhouse_execute"
+            operation_name="clickhouse_execute",
         )
 
     async def query_async(self, query: str, parameters: dict | list | None = None) -> Any:
@@ -84,14 +81,13 @@ class ClickHouseDatabase:
 
         async def do_query() -> Any:
             return await loop.run_in_executor(
-                None,
-                lambda: self.client.query(query, parameters=parameters)
+                None, lambda: self.client.query(query, parameters=parameters)
             )
 
         return await with_retry(
             operation=do_query,
             retryable_exceptions=(ClickHouseError,),
-            operation_name="clickhouse_query"
+            operation_name="clickhouse_query",
         )
 
     def close(self) -> None:

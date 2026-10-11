@@ -1,15 +1,19 @@
 """
 Module missing docstring.
 """
-import structlog
+
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
+import structlog
+
 from benefit_iq.application.contracts.repositories.user_repository import UserRepository
 from benefit_iq.domain.entities.user import User
-from benefit_iq.domain.exceptions.user_exceptions import UserNotFoundException, UserAlreadyExistsException
-
+from benefit_iq.domain.exceptions.user_exceptions import (
+    UserAlreadyExistsException,
+    UserNotFoundException,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -17,6 +21,7 @@ logger = structlog.get_logger(__name__)
 @dataclass(frozen=True)
 class UpdateProfileCommand:
     """Class missing docstring."""
+
     user_id: UUID
     first_name: str
     last_name: str
@@ -26,8 +31,8 @@ class UpdateProfileCommand:
 
 
 class UpdateProfileHandler:
-
     """Class missing docstring."""
+
     def __init__(self, user_repository: UserRepository) -> None:
         """Function missing docstring."""
         self.user_repository = user_repository
@@ -41,7 +46,9 @@ class UpdateProfileHandler:
         if user.username != command.username:
             existing_username = await self.user_repository.get_by_username(command.username)
             if existing_username:
-                raise UserAlreadyExistsException(f"User with username '{command.username}' already exists.")
+                raise UserAlreadyExistsException(
+                    f"User with username '{command.username}' already exists."
+                )
 
         user.first_name = command.first_name
         user.last_name = command.last_name

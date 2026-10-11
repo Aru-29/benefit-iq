@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 from dataclasses import dataclass
 
 from benefit_iq.domain.exceptions.role_exceptions import (
@@ -11,6 +12,7 @@ from benefit_iq.domain.exceptions.role_exceptions import (
 @dataclass(frozen=True)
 class RoleName:
     """Class missing docstring."""
+
     value: str
 
     def __post_init__(self) -> None:
@@ -18,13 +20,9 @@ class RoleName:
         value = self.value.strip()
 
         if not value:
-            raise InvalidRoleNameException(
-                "Role name cannot be empty."
-            )
+            raise InvalidRoleNameException("Role name cannot be empty.")
 
         if len(value) > 100:
-            raise InvalidRoleNameException(
-                "Role name cannot exceed 100 characters."
-            )
+            raise InvalidRoleNameException("Role name cannot exceed 100 characters.")
 
         object.__setattr__(self, "value", value)

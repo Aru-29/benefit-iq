@@ -3,9 +3,10 @@
 Handles user registration with 2-Step OTP email verification, 2-Step 2FA login OTP authentication,
 Argon2id password verification, JWT token pair issuance, refresh token rotation, and OAuth2/OIDC SSO.
 """
+
 # pylint: disable=line-too-long
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Request, status
 
 from benefit_iq.api.dependencies.auth import get_current_user_id
 from benefit_iq.api.schemas.auth import (
@@ -59,6 +60,7 @@ from benefit_iq.application.auth.commands.verify_email import (
     VerifyEmailCommand,
     VerifyEmailHandler,
 )
+
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication & Session"],
@@ -252,3 +254,11 @@ async def oauth_callback(
             expires_in=token_pair.expires_in,
         ),
     )
+
+
+@router.get("/public-key")
+@inject
+async def public_key(crypto=Depends(Provide["password_encryption"])):
+    from cryptography.hazmat.primitives import serialization
+    pem = crypto.public_key.public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+    return ApiResponse(success=True, data={"public_key": pem.decode("ascii")})

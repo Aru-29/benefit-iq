@@ -1,6 +1,7 @@
 """
 Module missing docstring.
 """
+
 import logging
 import sys
 
@@ -14,7 +15,6 @@ from benefit_iq.infrastructure.configuration.settings import (
 def configure_logging(
     settings: Settings,
 ) -> None:
-
     """Function missing docstring."""
     timestamper = structlog.processors.TimeStamper(
         fmt="iso",
@@ -30,25 +30,15 @@ def configure_logging(
     ]
 
     if settings.log_json:
-
-        processors.append(
-            structlog.processors.JSONRenderer()
-        )
+        processors.append(structlog.processors.JSONRenderer())
 
     else:
-
-        processors.append(
-            structlog.dev.ConsoleRenderer()
-        )
+        processors.append(structlog.dev.ConsoleRenderer())
 
     structlog.configure(
         processors=processors,
-        wrapper_class=(
-            structlog.stdlib.BoundLogger
-        ),
-        logger_factory=(
-            structlog.stdlib.LoggerFactory()
-        ),
+        wrapper_class=(structlog.stdlib.BoundLogger),
+        logger_factory=(structlog.stdlib.LoggerFactory()),
         cache_logger_on_first_use=True,
     )
 

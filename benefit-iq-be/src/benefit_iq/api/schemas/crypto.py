@@ -1,4 +1,5 @@
 """Cryptography API Request and Response Schemas."""
+
 from pydantic import BaseModel, Field
 
 

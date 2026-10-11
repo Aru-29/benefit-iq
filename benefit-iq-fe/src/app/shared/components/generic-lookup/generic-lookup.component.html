@@ -1,0 +1,39 @@
+<div class="lookup-container">
+  <label *ngIf="label" class="lookup-label">{{ label }}</label>
+  
+  <div class="lookup-input-wrapper">
+    <input
+      type="text"
+      class="lookup-input"
+      [formControl]="searchControl"
+      [placeholder]="placeholder"
+      (focus)="onFocus()"
+      (keydown)="onKeydown($event)"
+    />
+    
+    <span *ngIf="isLoading()" class="lookup-spinner"></span>
+    <button *ngIf="searchControl.value" type="button" class="lookup-clear" (click)="clear()">&times;</button>
+  </div>
+
+  <!-- Dropdown Results Panel -->
+  <div *ngIf="isOpen()" class="lookup-dropdown" (scroll)="onScroll($event)">
+    <div *ngIf="items().length === 0 && !isLoading()" class="lookup-empty">
+      No results found.
+    </div>
+
+    <div
+      *ngFor="let item of items(); let i = index"
+      class="lookup-item"
+      [class.selected]="isSelected(item)"
+      [class.highlighted]="i === highlightedIndex()"
+      (click)="selectItem(item)"
+    >
+      <div class="lookup-item-label">{{ item.label }}</div>
+      <div *ngIf="item.description" class="lookup-item-desc">{{ item.description }}</div>
+    </div>
+
+    <div *ngIf="isLoading() && items().length > 0" class="lookup-loading-more">
+      Loading more...
+    </div>
+  </div>
+</div>

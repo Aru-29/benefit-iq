@@ -1,13 +1,16 @@
 """
 Module missing docstring.
 """
+
 from datetime import datetime
 from uuid import UUID
+
 from pydantic import BaseModel
 
 
 class UserProfileResponse(BaseModel):
     """Class missing docstring."""
+
     id: UUID
     username: str
     first_name: str
@@ -25,6 +28,7 @@ class UserProfileResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     """Class missing docstring."""
+
     first_name: str
     last_name: str
     username: str

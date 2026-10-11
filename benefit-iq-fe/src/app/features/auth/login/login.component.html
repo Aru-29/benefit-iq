@@ -1,0 +1,51 @@
+<div class="layout-fullscreen-center">
+  <mat-card class="card">
+    <div class="card-header">
+      <h1>Sign in to BenefitIQ</h1>
+      <p>Or <a routerLink="/auth/register">create a new account</a></p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div *ngIf="error()" class="alert alert-error">
+        {{ error() }}
+      </div>
+
+      <div class="form-group">
+        <mat-form-field appearance="outline">
+          <mat-label>Email address</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="email" required>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">Email is required</mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Please enter a valid email</mat-error>
+        </mat-form-field>
+
+        <app-password-input 
+          formControlName="password" 
+          label="Password" 
+          placeholder="Enter your password">
+        </app-password-input>
+      </div>
+
+      <div class="layout-flex-between" style="margin-bottom: var(--space-md);">
+        <div style="flex: 1"></div>
+        <a href="#">Forgot your password?</a>
+      </div>
+
+      <button class="btn-primary" type="submit" [disabled]="loginForm.invalid || isLoading()">
+        <span *ngIf="isLoading()" class="spinner"></span>
+        <span *ngIf="!isLoading()">Sign in</span>
+      </button>
+    </form>
+
+    <div style="margin-top: var(--space-xl); text-align: center;">
+      <p style="margin-bottom: var(--space-md); color: var(--text-muted); font-size: var(--font-sm);">Or continue with</p>
+      <div class="layout-flex-row" style="justify-content: center;">
+        <button mat-stroked-button (click)="loginWithProvider('google')" style="flex: 1; border-radius: var(--border-radius);">
+          Google
+        </button>
+        <button mat-stroked-button (click)="loginWithProvider('microsoft')" style="flex: 1; border-radius: var(--border-radius);">
+          Microsoft
+        </button>
+      </div>
+    </div>
+  </mat-card>
+</div>

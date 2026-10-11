@@ -1,0 +1,55 @@
+<div class="chatbot-wrapper">
+  <!-- Floating Trigger Button -->
+  <button class="chatbot-trigger" (click)="toggleOpen()" [class.active]="isOpen()">
+    <svg *ngIf="!isOpen()" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+    <svg *ngIf="isOpen()" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Chat Window Panel -->
+  <div *ngIf="isOpen()" class="chatbot-window card">
+    <div class="chatbot-header">
+      <div class="chatbot-header-title">
+        <span class="status-dot"></span>
+        <strong>Benefit IQ AI Assistant</strong>
+      </div>
+      <div class="chatbot-header-actions">
+        <button class="btn-text" (click)="clearChat()" title="Clear Chat">Clear</button>
+      </div>
+    </div>
+
+    <div class="chatbot-messages">
+      <div *ngFor="let msg of messages()" class="chat-bubble" [class.user]="msg.sender === 'user'" [class.assistant]="msg.sender === 'assistant'">
+        <div class="chat-text">{{ msg.text }}</div>
+        <div class="chat-time">{{ msg.timestamp | date:'shortTime' }}</div>
+      </div>
+
+      <div *ngIf="isTyping()" class="typing-indicator">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- Prompt Suggestions -->
+    <div class="chatbot-prompts">
+      <button *ngFor="let prompt of promptSuggestions" (click)="sendPrompt(prompt)" class="chip-btn">
+        {{ prompt }}
+      </button>
+    </div>
+
+    <!-- Message Input -->
+    <div class="chatbot-input-bar">
+      <input
+        type="text"
+        class="input-field"
+        [(ngModel)]="userInput"
+        (keyup.enter)="sendMessage()"
+        placeholder="Ask AI about benefits, claims, deductible..."
+      />
+      <button class="btn-primary" (click)="sendMessage()" [disabled]="!userInput.trim()">Send</button>
+    </div>
+  </div>
+</div>

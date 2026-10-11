@@ -3,7 +3,9 @@
 Defines standardized lookup request and response structures for dropdowns,
 autocompletes, and infinite-scroll lookups across backend entities.
 """
+
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
