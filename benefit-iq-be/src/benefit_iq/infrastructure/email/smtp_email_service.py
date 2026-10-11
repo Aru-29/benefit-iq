@@ -2,7 +2,9 @@
 Module missing docstring.
 """
 
+from datetime import datetime
 from email.message import EmailMessage
+from html import escape
 from typing import TYPE_CHECKING, Any
 
 import aiosmtplib
@@ -175,5 +177,23 @@ class SmtpEmailService(EmailService):
                 <p>This code will expire in 10 minutes. Do not share this code with anyone.</p>
             </body>
         </html>
+        """
+        await self._send_email(to_email, f"BenefitIQ - {title}", content)
+
+    async def send_benefit_nudge(
+        self, to_email: str, title: str, message: str, expires_at: datetime | None
+    ) -> None:
+        """Send an opted-in benefit reminder without embedding untrusted markup."""
+        expiry = (
+            f"This reminder expires on {escape(expires_at.isoformat())}."
+            if expires_at
+            else ""
+        )
+        content = f"""
+        <html><body>
+        <h2>{escape(title)}</h2>
+        <p>{escape(message)}</p>
+        <p>{expiry}</p>
+        </body></html>
         """
         await self._send_email(to_email, f"BenefitIQ - {title}", content)

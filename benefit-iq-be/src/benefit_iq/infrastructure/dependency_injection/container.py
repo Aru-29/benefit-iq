@@ -155,8 +155,21 @@ def init_container() -> Container:
         "password_encryption", PasswordEncryptionService, private_key_pem=private_key_pem
     )
 
+    email_service = container.singleton(
+        "email_service",
+        SmtpEmailService,
+        host=settings.email.host,
+        port=settings.email.port,
+        username=settings.email.username,
+        password=settings.email.password,
+        from_address=settings.email.from_address,
+        use_tls=settings.email.use_tls,
+        config_service=app_config_service,
+    )
+
     # BenefitIQ Core Repositories
     from benefit_iq.application.benefits.ml_prediction_service import MLPredictionService
+    from benefit_iq.application.benefits.notification_service import BenefitNotificationService
     from benefit_iq.application.benefits.nudge_service import NudgeService
     from benefit_iq.application.benefits.portfolio_service import PortfolioAnalyticsService
     from benefit_iq.application.benefits.utilization_service import BenefitUtilizationService
@@ -265,6 +278,12 @@ def init_container() -> Container:
         transaction_repository=transaction_repo,
         redemption_model=redemption_model,
     )
+    notification_service = container.singleton(
+        "benefit_notification_service",
+        BenefitNotificationService,
+        users=user_repository,
+        email_service=email_service,
+    )
     container.singleton(
         "nudge_service",
         NudgeService,
@@ -272,24 +291,13 @@ def init_container() -> Container:
         offer_repository=offer_repo,
         benefit_repository=benefit_repo,
         card_repository=card_repo,
+        notification_service=notification_service,
     )
     container.singleton(
         "portfolio_analytics_service",
         PortfolioAnalyticsService,
         card_repository=card_repo,
         utilization_service=utilization_service,
-    )
-
-    email_service = container.singleton(
-        "email_service",
-        SmtpEmailService,
-        host=settings.email.host,
-        port=settings.email.port,
-        username=settings.email.username,
-        password=settings.email.password,
-        from_address=settings.email.from_address,
-        use_tls=settings.email.use_tls,
-        config_service=app_config_service,
     )
 
     # OAuth Providers

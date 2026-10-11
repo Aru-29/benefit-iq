@@ -13,8 +13,16 @@ from benefit_iq.domain.enums.benefit_enums import (
 
 
 class NudgeService:
-    def __init__(self, nudge_repository, offer_repository, benefit_repository, card_repository):
+    def __init__(
+        self,
+        nudge_repository,
+        offer_repository,
+        benefit_repository,
+        card_repository,
+        notification_service=None,
+    ):
         self.repository = nudge_repository
+        self.notifications = notification_service
 
     async def generate_nudges_for_customer(
         self, customer_id, utilizations, risk_predictions=None, channel=NudgeChannel.IN_APP
@@ -44,7 +52,7 @@ class NudgeService:
                 if u.at_risk_of_expiry
                 else NudgeType.BENEFIT_REMINDER,
                 channel=channel,
-                status=NudgeStatus.DELIVERED,
+                status=NudgeStatus.PENDING,
                 title=u.benefit_name,
                 message=f"Review {u.benefit_name} before {u.expiry_date.date()}. Confirm issuer terms before redemption.",
                 unused_value=u.remaining_value,
@@ -53,8 +61,8 @@ class NudgeService:
                 ml_score=None,
                 prediction_id=None,
                 scheduled_at=now,
-                sent_at=now,
-                delivered_at=now,
+                sent_at=None,
+                delivered_at=None,
                 opened_at=None,
                 converted_at=None,
                 expires_at=u.expiry_date,
@@ -62,7 +70,21 @@ class NudgeService:
                 created_at=now,
                 updated_at=now,
             )
-            result.append(await self.repository.create(nudge))
+            nudge = await self.repository.create(nudge)
+            if self.notifications:
+                delivery = await self.notifications.deliver(nudge)
+                if delivery.delivered:
+                    nudge.mark_sent(now)
+                    nudge.mark_delivered(now)
+                else:
+                    nudge.mark_failed(now)
+            elif nudge.channel == NudgeChannel.IN_APP:
+                nudge.mark_sent(now)
+                nudge.mark_delivered(now)
+            else:
+                nudge.mark_failed(now)
+            nudge = await self.repository.update(nudge)
+            result.append(nudge)
         return result
 
     async def get_customer_nudges(self, customer_id, status=None):

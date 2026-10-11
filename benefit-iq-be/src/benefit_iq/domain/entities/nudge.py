@@ -64,6 +64,11 @@ class Nudge:
         self.status = NudgeStatus.DISMISSED
         self.updated_at = dismissed_time
 
+    def mark_failed(self, failed_time: datetime) -> None:
+        """Record a delivery failure without exposing provider details to the member."""
+        self.status = NudgeStatus.FAILED
+        self.updated_at = failed_time
+
     def is_expired(self, current_time: datetime) -> bool:
         """Check if nudge has expired."""
         if self.expires_at and current_time > self.expires_at:

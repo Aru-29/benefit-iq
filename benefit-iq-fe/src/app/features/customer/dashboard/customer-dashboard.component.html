@@ -24,6 +24,7 @@
   </p>
 
   <p *ngIf="loading()" role="status">Loading your benefits...</p>
+  <p *ngIf="notice()" role="status">{{notice()}}</p>
 
   <ng-container *ngIf="summary() as s">
     <section class="metrics" aria-label="Current benefit cycles">
@@ -65,7 +66,7 @@
             <input name="lastFour" [(ngModel)]="lastFour"
                    pattern="[0-9]{4}" maxlength="4" required inputmode="numeric">
           </label>
-          <button [disabled]="cardForm.invalid || busy()">Add to wallet</button>
+          <button [disabled]="cardForm.invalid || busy() || loading()">Add to wallet</button>
         </form>
       </article>
 
@@ -111,7 +112,7 @@
                      [name]="b.card_id+b.benefit_id"
                      [(ngModel)]="amounts[b.card_id+b.benefit_id]">
             </label>
-            <button [disabled]="busy()">
+            <button [disabled]="busy() || loading()">
               Record {{b.value_type === 'monetary' ? 'credit use' : 'a use'}}
             </button>
           </form>
@@ -149,7 +150,7 @@
         <label>Date and time
           <input name="txDate" type="datetime-local" [(ngModel)]="txDate" required>
         </label>
-        <button [disabled]="txForm.invalid || busy()">Save transaction</button>
+        <button [disabled]="txForm.invalid || busy() || loading()">Save transaction</button>
       </form>
     </section>
   </ng-container>

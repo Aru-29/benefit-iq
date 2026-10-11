@@ -10,6 +10,7 @@ BenefitIQ helps a card issuer and its cardholders understand which entitled bene
 - Customer-scoped card registration, transaction ingestion, reversal, self-reported benefit use and enrolment recording.
 - A deterministic rule evaluator for benefit eligibility and a utilization calculation using decimal money values, currency boundaries and half-open benefit cycles.
 - Customer benefit summaries, recommendations, nudge acknowledgement and an administrator KPI view.
+- Consent-first notification delivery: in-app reminders are delivered immediately; benefit email requires an explicit `preferred_settings.benefit_notifications.email` opt-in and records provider failures without exposing provider details.
 - A reproducible, optional XGBoost training/scoring pipeline that requires labelled input and records data hashes and validation metadata. It does not claim a production accuracy result.
 - Angular 18 member, authentication and administration interfaces. Components use API services rather than embedding HTTP calls.
 
@@ -60,7 +61,7 @@ Core records include `users`, roles, card products, cards, benefits, benefit rul
 
 ## Implementation status and limitations
 
-The API, member workflow and dashboard are functional for local synthetic data. The repository does **not** include issuer integrations, verified entitlement terms, a production notification provider, consent management, a real claims workflow, data retention policies, audit export, dashboards for measured experiments, or a validated ML artifact. SMTP and OpenBao are adapters; their production deployment and policies are outside this repository.
+The API, member workflow and dashboard are functional for local synthetic data. The repository does **not** include issuer integrations, verified entitlement terms, a production notification provider, consent-management UI, a real claims workflow, data retention policies, audit export, dashboards for measured experiments, or a validated ML artifact. SMTP and OpenBao are adapters; their production deployment and policies are outside this repository.
 
 ClickHouse is well suited to analytical reads, but it is not an OLTP system with transactional guarantees for identities, refresh-token records, redemptions or financial event ingestion. A production deployment should move mutable security and workflow state to PostgreSQL (or equivalent), retain ClickHouse for analytical projections, and use an outbox/event consumer for projection updates.
 

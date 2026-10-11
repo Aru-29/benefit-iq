@@ -14,7 +14,7 @@ import { CustomerApiService, Envelope, Summary, Product, Card, Benefit, Recommen
 export class CustomerDashboardComponent implements OnInit {
   private customerApi = inject(CustomerApiService);
   summary = signal<Summary | null>(null); products = signal<Product[]>([]); cards = signal<Card[]>([]);
-  recommendations = signal<Recommendation[]>([]); error = signal(''); loading = signal(false); busy = signal(false);
+  recommendations = signal<Recommendation[]>([]); error = signal(''); notice = signal(''); loading = signal(false); busy = signal(false);
   currency = 'USD'; productId = ''; lastFour = ''; amounts: Record<string, number> = {};
   txCard = ''; reference = ''; merchant = ''; mcc = ''; txAmount = 0; txDate = '';
   private usageKeys: Record<string, string> = {};
@@ -49,21 +49,21 @@ export class CustomerDashboardComponent implements OnInit {
   }
   
   addCard() { 
-    this.busy.set(true); this.error.set('');
+    this.busy.set(true); this.error.set(''); this.notice.set('');
     this.customerApi.addCard({product_id:this.productId, last_four:this.lastFour, alias:'My Explorer'})
-      .subscribe({next: () => { this.busy.set(false); this.load(); }, error: e => this.fail(e)}); 
+      .subscribe({next: () => { this.busy.set(false); this.notice.set('Card added to your wallet.'); this.load(); }, error: e => this.fail(e)}); 
   }
   
   recordUse(b: Benefit) {
     const key = b.card_id+b.benefit_id; this.usageKeys[key] ||= crypto.randomUUID();
-    this.busy.set(true); this.error.set('');
+    this.busy.set(true); this.error.set(''); this.notice.set('');
     this.customerApi.recordUsage({external_id:this.usageKeys[key], card_id:b.card_id, benefit_id:b.benefit_id, currency:b.currency, value:b.value_type === 'monetary' ? String(this.amounts[key] || 0) : '0'})
-      .subscribe({next: () => { this.busy.set(false); delete this.usageKeys[key]; this.load(); }, error: e => this.fail(e)});
+      .subscribe({next: () => { this.busy.set(false); delete this.usageKeys[key]; this.notice.set('Benefit use recorded.'); this.load(); }, error: e => this.fail(e)});
   }
   
   addTransaction() {
-    this.busy.set(true); this.error.set('');
+    this.busy.set(true); this.error.set(''); this.notice.set('');
     this.customerApi.addTransaction({external_id:this.reference, card_id:this.txCard, amount:String(this.txAmount), currency:this.currency, merchant_name:this.merchant, merchant_category_code:this.mcc, transaction_date:new Date(this.txDate).toISOString()})
-      .subscribe({next: () => { this.busy.set(false); this.load(); }, error: e => this.fail(e)});
+      .subscribe({next: () => { this.busy.set(false); this.notice.set('Transaction saved. This does not automatically redeem a benefit.'); this.load(); }, error: e => this.fail(e)});
   }
 }

@@ -92,13 +92,20 @@ export class LoginComponent {
         },
         error: (err) => {
           this.isLoading.set(false);
-          this.error.set(err.error?.detail || 'Login failed. Please try again.');
+          this.error.set(this.errorMessage(err, 'Login failed. Please try again.'));
         }
       });
     } catch (e) {
       this.isLoading.set(false);
       this.error.set('Failed to encrypt password or communicate with server.');
     }
+  }
+
+  private errorMessage(error: { error?: { detail?: unknown } }, fallback: string): string {
+    const detail = error.error?.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) return detail.map(item => item.msg ?? String(item)).join('. ');
+    return fallback;
   }
 
   loginWithProvider(provider: string) {
